@@ -1,0 +1,83 @@
+page 106 (
+    name: Ventes Agr?g?es
+    title: Ventes Agr?g?es
+    pageGroup: @hq
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: Ventes Agr?g?es
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: HQ_VENTES_JOUR
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
+
+        column DATE_VENTE (
+            type: plainText
+            heading {
+                heading: "Date"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_ID (
+            type: plainText
+            heading {
+                heading: "Site"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column CA_TTC (
+            type: plainText
+            heading {
+                heading: "CA TTC"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column NB_TICKETS (
+            type: plainText
+            heading {
+                heading: "Tickets"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+    )
+)

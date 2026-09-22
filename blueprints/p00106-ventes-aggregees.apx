@@ -1,0 +1,103 @@
+page 106 (
+    name: HQ Ventes Agrégées
+    alias: HQ-VENTES-AGREGEES
+    title: Ventes Agrégées Multi-Sites
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Chiffre d'affaires agrégé par site, par jour, par mode de paiement.</p>
+            <p>Source : TRANSFERT.CETICKET_ARCH + TES-TRANSFER.</p>
+            <p>Données mises à jour toutes les 4h par le job AGG_HQ_VENTES_DAILY.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region filtres (
+        name: Période
+        type: form
+        source { location: localDatabase; tableName: HQ_VENTES_JOUR }
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+    )
+
+    pageItem P106_DATE_DEBUT ( type: datePicker; label { label: Du; alignment: right } layout { sequence: 10; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } default { staticValue: "TRUNC(SYSDATE) - 30" } )
+    pageItem P106_DATE_FIN ( type: datePicker; label { label: Au; alignment: right } layout { sequence: 20; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } default { staticValue: "TRUNC(SYSDATE)" } )
+
+    button apply ( buttonName: APPLY; label: Appliquer; layout { sequence: 100; region: @filtres; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { action: submit } )
+
+    region chart-ca-journalier (
+        name: CA par jour
+        type: chart
+        source {
+            type: line
+            sqlQuery:
+                ```sql
+                SELECT JOUR AS label,
+                       SUM(NVL(TOTAL_TTC, 0)) AS value
+                  FROM HQ_VENTES_JOUR
+                 WHERE JOUR BETWEEN :P106_DATE_DEBUT AND :P106_DATE_FIN
+                 GROUP BY JOUR
+                 ORDER BY JOUR
+                ```
+        }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/standard; templateOptions: [ #DEFAULT# t-Region--scrollBody ] }
+    )
+
+    region chart-ca-par-site (
+        name: CA total par site (période)
+        type: chart
+        source {
+            type: pie
+            sqlQuery:
+                ```sql
+                SELECT s.SITE_CODE AS label,
+                       SUM(NVL(v.TOTAL_TTC, 0)) AS value
+                  FROM HQ_VENTES_JOUR v
+                  JOIN "TES-SITE" s ON s.ID = v.SITE_ID
+                 WHERE v.JOUR BETWEEN :P106_DATE_DEBUT AND :P106_DATE_FIN
+                 GROUP BY s.SITE_CODE
+                 ORDER BY value DESC
+                ```
+        }
+        layout { sequence: 30; slot: body }
+        appearance { template: @/standard; templateOptions: [ #DEFAULT# t-Region--scrollBody ] }
+    )
+
+    region table-ca-detaille (
+        name: Détail journalier par site
+        type: interactiveReport
+        source { location: localDatabase; tableName: HQ_VENTES_JOUR }
+        layout { sequence: 40; slot: body }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune donnée de ventes pour cette période. Lancez le job AGG_HQ_VENTES_DAILY. }
+
+        column JOUR ( type: plainText; heading { heading: Jour } layout { sequence: 1 } source { dataType: DATE } )
+        column SITE_ID ( type: plainText; heading { heading: Site } layout { sequence: 2 } source { dataType: STRING } )
+        column NUMTICKETS ( type: plainText; heading { heading: Tickets; alignment: end } layout { sequence: 3; columnAlignment: end } appearance { formatMask: 999G990 } source { dataType: NUMBER } )
+        column TOTAL_HT ( type: plainText; heading { heading: Total HT; alignment: end } layout { sequence: 4; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+        column TOTAL_TTC ( type: plainText; heading { heading: Total TTC; alignment: end } layout { sequence: 5; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+        column TOTAL_REMISE ( type: plainText; heading { heading: Remise; alignment: end } layout { sequence: 6; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+        column TOTAL_NET ( type: plainText; heading { heading: Net; alignment: end } layout { sequence: 7; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 100 }
+            sort ( column: JOUR; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+)

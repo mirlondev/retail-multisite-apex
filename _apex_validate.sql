@@ -1,0 +1,2 @@
+apex validate -input .
+EXIT

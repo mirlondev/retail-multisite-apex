@@ -1,0 +1,320 @@
+list navigation-bar (
+    name: Navigation Bar
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 30
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+)
+
+list navigation-menu (
+    name: Navigation Menu
+
+    entry hq-dashboard (
+        label: Pilotage HQ
+        icon {
+            imageIconCssClasses: fa-dashboard
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
+    entry hq-sites (
+        label: Gestion des Sites
+        icon {
+            imageIconCssClasses: fa-building
+        }
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry hq-sync-monitor (
+        label: Monitoring Synchronisation
+        icon {
+            imageIconCssClasses: fa-shopping-cart
+        }
+        layout {
+            sequence: 25
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry hq-stock (
+        label: Stock Multi-Sites
+        icon {
+            imageIconCssClasses: fa-cubes
+        }
+        layout {
+            sequence: 26
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry hq-transfers (
+        label: Transferts Inter-Sites
+        icon {
+            imageIconCssClasses: fa-exchange
+        }
+        layout {
+            sequence: 27
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry hq-sales (
+        label: Ventes Agrégées
+        icon {
+            imageIconCssClasses: fa-line-chart
+        }
+        layout {
+            sequence: 28
+        }
+        link {
+            target: {
+                page: 106
+            }
+        }
+    )
+
+    entry sm-dashboard (
+        label: Tableau de Bord Magasin
+        icon {
+            imageIconCssClasses: fa-shopping-cart
+        }
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+    )
+
+    entry sm-reappro (
+        label: Demande Réapprovisionnement
+        icon {
+            imageIconCssClasses: fa-truck
+        }
+        layout {
+            sequence: 40
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry sm-stock (
+        label: Stock Local
+        icon {
+            imageIconCssClasses: fa-cubes
+        }
+        layout {
+            sequence: 41
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry sm-transfers (
+        label: Transferts en Cours
+        icon {
+            imageIconCssClasses: fa-exchange
+        }
+        layout {
+            sequence: 42
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)
+
+list page-navigation (
+    name: Page Navigation
+
+    entry hq-dashboard (
+        label: Pilotage HQ
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
+    entry hq-sites (
+        label: Gestion des Sites
+        layout {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry hq-sync-monitor (
+        label: Monitoring Synchronisation
+        layout {
+            sequence: 25
+        }
+        link {
+            target: {
+                page: 103
+            }
+        }
+    )
+
+    entry hq-stock (
+        label: Stock Multi-Sites
+        layout {
+            sequence: 26
+        }
+        link {
+            target: {
+                page: 104
+            }
+        }
+    )
+
+    entry hq-transfers (
+        label: Transferts Inter-Sites
+        layout {
+            sequence: 27
+        }
+        link {
+            target: {
+                page: 105
+            }
+        }
+    )
+
+    entry hq-sales (
+        label: Ventes Agrégées
+        layout {
+            sequence: 28
+        }
+        link {
+            target: {
+                page: 106
+            }
+        }
+    )
+
+    entry sm-dashboard (
+        label: Tableau de Bord Magasin
+        layout {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+    )
+
+    entry sm-reappro (
+        label: Demande Réapprovisionnement
+        layout {
+            sequence: 40
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+
+    entry sm-stock (
+        label: Stock Local
+        layout {
+            sequence: 41
+        }
+        link {
+            target: {
+                page: 201
+            }
+        }
+    )
+
+    entry sm-transfers (
+        label: Transferts en Cours
+        layout {
+            sequence: 42
+        }
+        link {
+            target: {
+                page: 203
+            }
+        }
+    )
+)

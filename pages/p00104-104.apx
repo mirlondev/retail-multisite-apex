@@ -1,0 +1,95 @@
+page 104 (
+    name: Stock Multi-Sites
+    title: Stock Multi-Sites
+    pageGroup: @hq
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: Stock Multi-Sites
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-STOCK-SITE"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
+
+        column SITE_ID (
+            type: plainText
+            heading {
+                heading: "Site"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column CODART (
+            type: plainText
+            heading {
+                heading: "Article"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QTEPHYSIQUE (
+            type: plainText
+            heading {
+                heading: "Stock physique"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column QTETHEORIQUE (
+            type: plainText
+            heading {
+                heading: "Stock th?orique"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column QTEMIN (
+            type: plainText
+            heading {
+                heading: "Minimum"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+    )
+)

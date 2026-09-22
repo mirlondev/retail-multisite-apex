@@ -1,0 +1,125 @@
+page 101 (
+    name: Liste des Sites
+    alias: HQ-SITES
+    title: Gestion des Sites
+    pageGroup: @hq
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region sites (
+        name: Sites
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-SITE"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [
+                #DEFAULT#
+                t-IRR-region--hideHeader
+                js-addHiddenHeadingRoleDesc
+            ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucun site configuré.
+        }
+
+        column ID (
+            type: hidden
+            heading {
+                heading: "ID"
+            }
+            layout {
+                sequence: 0
+            }
+            source {
+                primaryKey: true
+                dataType: NUMBER
+            }
+        )
+        column SITE_CODE (
+            type: plainText
+            heading {
+                heading: "Code"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_NAME (
+            type: plainText
+            heading {
+                heading: "Nom"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_TYPE (
+            type: plainText
+            heading {
+                heading: "Type"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column CITY (
+            type: plainText
+            heading {
+                heading: "Ville"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column PHONE (
+            type: plainText
+            heading {
+                heading: "Téléphone"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ACTIVE (
+            type: plainText
+            heading {
+                heading: "Actif"
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

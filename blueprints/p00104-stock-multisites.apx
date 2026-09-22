@@ -1,0 +1,99 @@
+page 104 (
+    name: HQ Stock Multi-Sites
+    alias: HQ-STOCK-MULTISITES
+    title: Stock Multi-Sites
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Vue consolidée du stock par site et par article.</p>
+            <p>Articles en rupture ou sous le minimum sont mis en évidence.</p>
+            <p>Pour zoomer sur un site, cliquer sur son nom.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region filtres (
+        name: Filtres
+        type: form
+        source { location: localDatabase; tableName: TES-STOCK-SITE }
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+    )
+
+    pageItem P104_SITE_FILTER ( type: selectList; label { label: Site; alignment: right } layout { sequence: 10; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } lov { staticValues: [
+        { returnValue: ALL; displayValue: Tous les sites }
+        { returnValue: DEP_P; displayValue: Dépôt principal }
+        { returnValue: DEP_SM1; displayValue: Dépôt SM1 }
+        { returnValue: SM1; displayValue: Supermarché SM1 }
+        { returnValue: DEP_SM2; displayValue: Dépôt SM2 }
+        { returnValue: SM2; displayValue: Supermarché SM2 }
+        { returnValue: DEP_SM3; displayValue: Dépôt SM3 }
+        { returnValue: SM3; displayValue: Supermarché SM3 }
+        { returnValue: DEP_SM4; displayValue: Dépôt SM4 }
+        { returnValue: SM4; displayValue: Supermarché SM4 }
+        { returnValue: DEP_SM5; displayValue: Dépôt SM5 }
+        { returnValue: SM5; displayValue: Supermarché SM5 }
+    ] } default { staticValue: ALL } )
+    pageItem P104_ALERT_ONLY ( type: checkbox; label { label: Alertes uniquement; alignment: right } layout { sequence: 20; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { type: item; item: P104_ALERT_ONLY } default { staticValue: N } )
+
+    button apply-filter ( buttonName: APPLY; label: Appliquer; layout { sequence: 100; region: @filtres; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { action: submit } )
+
+    region stock-consolide (
+        name: Stock consolidé
+        type: interactiveReport
+        source { location: localDatabase; tableName: TES-STOCK-SITE }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun stock pour ce filtre. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_ID ( type: plainText; heading { heading: Site } layout { sequence: 1 } source { dataType: STRING } )
+        column CODART ( type: plainText; heading { heading: Article } layout { sequence: 2 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: Phys.; alignment: end } layout { sequence: 3; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: Théo.; alignment: end } layout { sequence: 4; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
+        column QTEENTRANSIT ( type: plainText; heading { heading: Transit; alignment: end } layout { sequence: 5; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
+        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 6; columnAlignment: end } source { dataType: NUMBER } )
+        column QTESEC ( type: plainText; heading { heading: Sécur.; alignment: end } layout { sequence: 7; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 100 }
+            sort ( column: CODART; sort { sequence: 2 } )
+            sort ( column: SITE_ID; sort { sequence: 1 } )
+        )
+    )
+
+    region chart-stock-par-site (
+        name: Stock total par site (top articles)
+        type: chart
+        source {
+            type: bar
+            sqlQuery:
+                ```sql
+                SELECT s.SITE_CODE AS label,
+                       SUM(NVL(t.QTEPHYSIQUE, 0)) AS value
+                  FROM "TES-SITE" s
+                  LEFT JOIN "TES-STOCK-SITE" t ON t.SITE_ID = s.ID
+                 WHERE s.SITE_TYPE IN ('DEPOT_PRINCIPAL','DEPOT_SM','SUPERMARKET')
+                 GROUP BY s.SITE_CODE
+                 ORDER BY value DESC
+                ```
+        }
+        layout { sequence: 30; slot: body }
+        appearance { template: @/standard; templateOptions: [ #DEFAULT# t-Region--scrollBody ] }
+    )
+
+)

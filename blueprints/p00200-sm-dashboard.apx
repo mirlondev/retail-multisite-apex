@@ -1,0 +1,164 @@
+page 200 (
+    name: SM Dashboard
+    alias: SM-DASHBOARD
+    title: Tableau de Bord Supermarché
+    pageGroup: @supermarche
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Tableau de bord du supermarché courant.</p>
+            <p>Contexte filtré automatiquement par SITE_ID = votre supermarché.</p>
+            <p>Pour demander un réappro, aller à "Demande réappro" dans le menu.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance {
+            template: @/title-bar
+            templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ]
+        }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-ca-jour (
+        name: CA du jour (site courant)
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                -- Site courant = SITE_ID via contexte applicatif
+                DECLARE
+                    v_site_code VARCHAR2(20);
+                    v_ca_ttc    NUMBER := 0;
+                    v_nb_tickets NUMBER := 0;
+                BEGIN
+                    SELECT SITE_CODE INTO v_site_code FROM "TES-SITE" WHERE ID = pkg_multisite_core.current_site;
+                    SELECT NVL(SUM(MONTANTTTC), 0), COUNT(*)
+                      INTO v_ca_ttc, v_nb_tickets
+                      FROM TRANSFERT."CETICKET_ARCH"
+                     WHERE CODCAI = v_site_code
+                       AND TRUNC(DATCRE) = TRUNC(SYSDATE);
+                    htp.p('Site : <b>' || v_site_code || '</b><br>');
+                    htp.p('CA TTC : <b>' || TO_CHAR(v_ca_ttc, 'FM999G999G999D00') || ' €</b><br>');
+                    htp.p('Tickets : <b>' || v_nb_tickets || '</b>');
+                END;
+                ```
+        }
+    )
+
+    region kpi-stock-local (
+        name: État du stock local
+        type: staticContent
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_nb_total   NUMBER := 0;
+                    v_nb_rupture NUMBER := 0;
+                    v_nb_alerte  NUMBER := 0;
+                    v_val_stock  NUMBER := 0;
+                BEGIN
+                    SELECT COUNT(*),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0))
+                                     AND NVL(QTEPHYSIQUE,0) > 0 THEN 1 ELSE 0 END)
+                      INTO v_nb_total, v_nb_rupture, v_nb_alerte
+                      FROM "TES-STOCK-SITE"
+                     WHERE SITE_ID = pkg_multisite_core.current_site;
+
+                    htp.p('Articles référencés : <b>' || v_nb_total || '</b><br>');
+                    htp.p('<span style="color:red">Ruptures : <b>' || v_nb_rupture || '</b></span><br>');
+                    htp.p('<span style="color:orange">Alertes : <b>' || v_nb_alerte || '</b></span>');
+                END;
+                ```
+        }
+    )
+
+    region kpi-transferts-attente (
+        name: Transferts en attente
+        type: staticContent
+        layout { sequence: 30; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_en_attente NUMBER := 0;
+                    v_en_transit NUMBER := 0;
+                    v_recu_7j    NUMBER := 0;
+                BEGIN
+                    SELECT
+                        SUM(CASE WHEN SITE_DEST_ID = pkg_multisite_core.current_site
+                                  AND ETAT IN ('DEMANDE','EN_PREPARATION','EN_TRANSIT') THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN SITE_DEST_ID = pkg_multisite_core.current_site
+                                  AND ETAT = 'EN_TRANSIT' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN SITE_DEST_ID = pkg_multisite_core.current_site
+                                  AND ETAT = 'RECEPTIONNE'
+                                  AND DATRECEPT_EFFECTIVE >= SYSDATE - 7 THEN 1 ELSE 0 END)
+                      INTO v_en_attente, v_en_transit, v_recu_7j
+                      FROM "TES-TRANSFER";
+
+                    htp.p('En attente : <b>' || v_en_attente || '</b><br>');
+                    htp.p('En transit : <b>' || v_en_transit || '</b><br>');
+                    htp.p('Reçus (7j) : <b>' || v_recu_7j || '</b>');
+                END;
+                ```
+        }
+    )
+
+    region report-alertes-stock (
+        name: Articles en alerte stock
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: TES-STOCK-SITE
+        }
+        layout { sequence: 40; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P200_SITE_FILTER
+        }
+        pagination { type: rowRangesXToY }
+        messages {
+            whenNoDataFound: Aucune alerte stock.
+        }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: Code Article } layout { sequence: 1 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: Qté Phys.; alignment: end } layout { sequence: 2; columnAlignment: end } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: Qté Théo.; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMAX ( type: plainText; heading { heading: Max; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 15 }
+            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
+        )
+    )
+
+    pageItem P200_SITE_FILTER (
+        type: hidden
+        layout { sequence: 0; region: @report-alertes-stock; slot: regionBody }
+        source { type: expression; plsqlExpression: 'pkg_multisite_core.current_site' }
+    )
+
+)

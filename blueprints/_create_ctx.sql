@@ -1,0 +1,6 @@
+CONNECT ERP_APP/"Apex2026_Secure@"@//localhost:1521/XEPDB1
+CREATE OR REPLACE CONTEXT SITE_CTX USING ERP_APP.set_site_ctx_for_user;
+BEGIN ERP_APP.set_site_ctx_for_user('admin'); END;
+/
+SELECT CURRENT_SITE_CODE, CURRENT_SITE_TYPE, CURRENT_USER_ROLE FROM v_current_user_ctx;
+EXIT

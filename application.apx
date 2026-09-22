@@ -1,0 +1,56 @@
+app TES-ARTICLE (
+    name: Tes-Article
+    logo {
+        type: text
+        text: Tes-Article
+    }
+    navigation {
+        homeUrl: {
+            page: 100
+        }
+        loginUrl: {
+            page: LOGIN
+        }
+    }
+    navigationMenu {
+        listTemplate: @/side-navigation-menu
+        templateOptions: [
+            #DEFAULT#
+            t-TreeNav--styleA
+            js-navCollapsed--hidden
+        ]
+        list: @navigation-menu
+    }
+    navigationBar {
+        list: @navigation-bar
+        listTemplate: @/navigation-bar
+        templateOptions: #DEFAULT#
+    }
+    userInterface {
+        currentTheme: @universal-theme
+        globalPage: 0
+        addBuiltWithApexToFooter: false
+    }
+    appFormatMasks {
+        date: DS
+        timestamp: DS
+        timestampTimeZone: DS
+    }
+    authentication {
+        scheme: @oracle-apex-accounts
+    }
+    sessionStateProtection {
+        checksumSalt: 68BF7188E98AAEBF09C99624DD69B80211028643C0594B46F3817F1EB4ACC1E6
+    }
+    runtime {
+        allowFeedback: true
+        debugging: true
+    }
+
+    substitution APP_NAME (
+        value {
+            staticValue: Tes-Article
+        }
+    )
+
+)

@@ -1,0 +1,24 @@
+page 103 (
+    name: Sync Monitor
+    pageGroup: @hq
+    title: Monitoring Synchronisation
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region content (
+        name: Monitoring Synchronisation
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+)

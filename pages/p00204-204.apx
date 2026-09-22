@@ -1,0 +1,95 @@
+page 204 (
+    name: R?ception Transfert
+    title: R?ceptionner un Transfert
+    pageGroup: @supermarche
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: R?ceptionner un Transfert
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-TRANSFER-RECEPTION"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
+
+        column TRANSFER_ID (
+            type: plainText
+            heading {
+                heading: "Transfert"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column RECEPTIONNE_PAR (
+            type: plainText
+            heading {
+                heading: "R?ceptionn? par"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column NB_COLIS_ATTENDUS (
+            type: plainText
+            heading {
+                heading: "Colis attendus"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column NB_COLIS_RECUS (
+            type: plainText
+            heading {
+                heading: "Colis re?us"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column ETAT_RECEPTION (
+            type: plainText
+            heading {
+                heading: "?tat"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

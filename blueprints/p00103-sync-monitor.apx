@@ -1,0 +1,149 @@
+page 103 (
+    name: HQ Sync Monitor
+    alias: HQ-SYNC-MONITOR
+    title: Monitoring Synchronisation
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Surveillance de l'intégration des données multi-sites.</p>
+            <p>État des jobs DBMS_SCHEDULER, dernières exécutions, erreurs, statistiques par site.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-jobs-status (
+        name: État des Jobs DBMS_SCHEDULER
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_total NUMBER;
+                    v_running NUMBER;
+                    v_failed_24h NUMBER;
+                BEGIN
+                    SELECT COUNT(*) INTO v_total FROM user_scheduler_jobs
+                     WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT');
+                    SELECT COUNT(*) INTO v_running FROM user_scheduler_running_jobs;
+                    SELECT COUNT(*) INTO v_failed_24h FROM user_scheduler_job_run_details
+                     WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT')
+                       AND actual_start_date > SYSDATE - 1
+                       AND status != 'SUCCEEDED';
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div><b>' || v_total || '</b><br>jobs configurés</div>');
+                    htp.p('  <div><b>' || v_running || '</b><br>en cours</div>');
+                    htp.p('  <div style="color:red"><b>' || v_failed_24h || '</b><br>échecs 24h</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    }
+
+    region kpi-transferts-en-attente (
+        name: Données TRANSFERT en attente d'intégration
+        type: staticContent
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_tickets NUMBER := 0;
+                    v_brd NUMBER := 0;
+                    v_ecr NUMBER := 0;
+                    v_sess NUMBER := 0;
+                    v_date_max DATE;
+                BEGIN
+                    SELECT COUNT(*), MAX(DATCRE) INTO v_tickets, v_date_max FROM TRANSFERT."CETICKET_ARCH";
+                    SELECT COUNT(*) INTO v_brd FROM TRANSFERT."TR_GCBRDE";
+                    SELECT COUNT(*) INTO v_ecr FROM TRANSFERT."TR_CP_ECR";
+                    SELECT COUNT(*) INTO v_sess FROM TRANSFERT."TR_CEPSESSION_ARCH";
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div><b>' || v_tickets || '</b><br>tickets</div>');
+                    htp.p('  <div><b>' || v_brd || '</b><br>BRDE</div>');
+                    htp.p('  <div><b>' || v_ecr || '</b><br>écritures</div>');
+                    htp.p('  <div><b>' || v_sess || '</b><br>sessions</div>');
+                    htp.p('</div>');
+                    IF v_date_max IS NOT NULL THEN
+                        htp.p('<small>Dernière donnée reçue : ' || TO_CHAR(v_date_max, 'DD/MM/YYYY HH24:MI') || '</small>');
+                    END IF;
+                END;
+                ```
+        }
+    )
+
+    region jobs-running (
+        name: Jobs en cours d'exécution
+        type: interactiveReport
+        source { location: localDatabase; sqlQuery: SELECT job_name, session_id, slave_process_id, run_count, cpu_used, TO_CHAR(last_start_date, 'DD/MM/YYYY HH24:MI:SS') AS last_start, status FROM user_scheduler_running_jobs } )
+        layout { sequence: 30; slot: body }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        pagination { type: noPagination }
+        messages { whenNoDataFound: Aucun job en cours. }
+
+        column JOB_NAME ( type: plainText; heading { heading: Job } layout { sequence: 1 } source { dataType: STRING } )
+        column SESSION_ID ( type: plainText; heading { heading: Session } layout { sequence: 2 } source { dataType: NUMBER } )
+        column LAST_START ( type: plainText; heading { heading: Démarré à } layout { sequence: 3 } source { dataType: STRING } )
+        column STATUS ( type: plainText; heading { heading: État } layout { sequence: 4 } source { dataType: STRING } )
+
+        savedReport primary ( visibility: primaryDefault )
+    )
+
+    region logs-hq (
+        name: Logs HQ_SYNC_LOG (50 derniers)
+        type: interactiveReport
+        source { location: localDatabase; tableName: HQ_SYNC_LOG }
+        layout { sequence: 40; slot: body }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun log. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SYNC_DATETIME ( type: plainText; heading { heading: Date/Heure } layout { sequence: 1 } source { dataType: DATE } )
+        column SYNC_TYPE ( type: plainText; heading { heading: Type } layout { sequence: 2 } source { dataType: STRING } )
+        column SYNC_STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
+        column RECORDS_PROCESSED ( type: plainText; heading { heading: Traités; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column RECORDS_FAILED ( type: plainText; heading { heading: Échoués; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column ERROR_MESSAGE ( type: plainText; heading { heading: Message } layout { sequence: 6 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: SYNC_DATETIME; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+    region logs-jobs-oracle (
+        name: Historique DBMS_SCHEDULER (24h)
+        type: interactiveReport
+        source { location: localDatabase; sqlQuery: SELECT job_name, TO_CHAR(actual_start_date, 'DD/MM HH24:MI:SS') AS started, status, error#, run_duration FROM user_scheduler_job_run_details WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT') AND actual_start_date > SYSDATE - 1 ORDER BY actual_start_date DESC } )
+        layout { sequence: 50; slot: body }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune exécution sur les 24 dernières heures. }
+
+        column JOB_NAME ( type: plainText; heading { heading: Job } layout { sequence: 1 } source { dataType: STRING } )
+        column STARTED ( type: plainText; heading { heading: Démarré } layout { sequence: 2 } source { dataType: STRING } )
+        column STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
+        column RUN_DURATION ( type: plainText; heading { heading: Durée } layout { sequence: 4 } source { dataType: NUMBER } )
+        column ERROR# ( type: plainText; heading { heading: Err#; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary ( visibility: primaryDefault; view { rowsPerPage: 30 } )
+    )
+
+)

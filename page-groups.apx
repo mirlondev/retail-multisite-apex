@@ -1,0 +1,11 @@
+pageGroup administration (
+    name: Administration
+)
+
+pageGroup hq (
+    name: Siège (HQ)
+)
+
+pageGroup supermarche (
+    name: Supermarché
+)

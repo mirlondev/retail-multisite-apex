@@ -1,0 +1,95 @@
+page 105 (
+    name: Transferts Inter-Sites
+    title: Transferts Inter-Sites
+    pageGroup: @hq
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: Transferts Inter-Sites
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-TRANSFER"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
+
+        column TRANSFER_NUM (
+            type: plainText
+            heading {
+                heading: "Transfert"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_SOURCE_ID (
+            type: plainText
+            heading {
+                heading: "Source"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_DEST_ID (
+            type: plainText
+            heading {
+                heading: "Destination"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ETAT (
+            type: plainText
+            heading {
+                heading: "?tat"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: "Priorit?"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+)

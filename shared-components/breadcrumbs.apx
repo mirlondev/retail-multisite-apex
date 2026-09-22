@@ -1,0 +1,55 @@
+breadcrumb breadcrumb (
+    name: Breadcrumb
+
+    entry hq-dashboard (
+        name: Pilotage HQ
+        pageNumber: 100
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 100
+            }
+        }
+    )
+
+    entry hq-sites (
+        name: Gestion des Sites
+        pageNumber: 101
+        execution {
+            sequence: 20
+        }
+        link {
+            target: {
+                page: 101
+            }
+        }
+    )
+
+    entry sm-dashboard (
+        name: Tableau de Bord Magasin
+        pageNumber: 200
+        execution {
+            sequence: 30
+        }
+        link {
+            target: {
+                page: 200
+            }
+        }
+    )
+
+    entry sm-reappro (
+        name: Demande Réapprovisionnement
+        pageNumber: 202
+        execution {
+            sequence: 40
+        }
+        link {
+            target: {
+                page: 202
+            }
+        }
+    )
+)

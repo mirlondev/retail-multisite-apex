@@ -1,0 +1,24 @@
+page 102 (
+    name: Site Form
+    pageGroup: @hq
+    title: Fiche Site
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region content (
+        name: Fiche Site
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+)

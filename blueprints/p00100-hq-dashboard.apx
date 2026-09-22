@@ -1,0 +1,229 @@
+page 100 (
+    name: HQ Dashboard
+    alias: HQ-DASHBOARD
+    title: Pilotage Multi-Sites
+    pageGroup: @hq
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+    help {
+        helpText:
+            ```html
+            <p>Tableau de bord HQ - Pilotage de la chaîne de supermarchés.</p>
+            <p>Vue d'ensemble du CA, des alertes, des transferts en cours et de la synchronisation.</p>
+            ```
+    }
+
+    region kpi-ca-total (
+        name: CA Total Aujourd'hui
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        source {
+            plsqlCode:
+                ```plsql
+                -- CA total du jour = agrégation HQ + TRANSFERT.CETICKET_ARCH du jour
+                SELECT TO_CHAR(SUM(NVL(MONTANTTTC, 0)), 'FM999G999G999D00') AS CA_TOTAL,
+                       COUNT(*) AS NB_TICKETS,
+                       COUNT(DISTINCT CODCAI) AS NB_SITES_ACTIFS
+                  FROM TRANSFERT."CETICKET_ARCH"
+                 WHERE TRUNC(DATCRE) = TRUNC(SYSDATE);
+                ```
+        }
+    )
+
+    region kpi-stock-alertes (
+        name: Alertes Stock
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        source {
+            plsqlCode:
+                ```plsql
+                SELECT
+                    SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END) AS NB_RUPTURES,
+                    SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0))
+                              AND NVL(QTEPHYSIQUE,0) > 0 THEN 1 ELSE 0 END) AS NB_ALERTES
+                  FROM "TES-STOCK-SITE";
+                ```
+        }
+    )
+
+    region kpi-transferts (
+        name: Transferts en Cours
+        type: staticContent
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        source {
+            plsqlCode:
+                ```plsql
+                SELECT
+                    SUM(CASE WHEN ETAT='DEMANDE' THEN 1 ELSE 0 END) AS EN_ATTENTE,
+                    SUM(CASE WHEN ETAT='EN_PREPARATION' THEN 1 ELSE 0 END) AS EN_PREPARATION,
+                    SUM(CASE WHEN ETAT='EN_TRANSIT' THEN 1 ELSE 0 END) AS EN_TRANSIT
+                  FROM "TES-TRANSFER";
+                ```
+        }
+    )
+
+    region kpi-synchro (
+        name: Statut Synchronisation
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        source {
+            plsqlCode:
+                ```plsql
+                SELECT
+                    SUM(CASE WHEN SYNC_STATUS='SUCCESS' AND TRUNC(SYNC_DATETIME)=TRUNC(SYSDATE) THEN 1 ELSE 0 END) AS SYNC_OK,
+                    SUM(CASE WHEN SYNC_STATUS='FAILED' AND TRUNC(SYNC_DATETIME)=TRUNC(SYSDATE) THEN 1 ELSE 0 END) AS SYNC_FAILED,
+                    MAX(SYNC_DATETIME) AS LAST_SYNC
+                  FROM "HQ_SYNC_LOG";
+                ```
+        }
+    )
+
+    region chart-ca-par-site (
+        name: CA par Site (7 derniers jours)
+        type: chart
+        source {
+            type: pie
+            sqlQuery:
+                ```sql
+                SELECT s.SITE_CODE AS label,
+                       SUM(NVL(t.MONTANTTTC, 0)) AS value
+                  FROM "TES-SITE" s
+                  LEFT JOIN TRANSFERT."CETICKET_ARCH" t ON t.CODCAI = s.SITE_CODE
+                                                            AND TRUNC(t.DATCRE) >= TRUNC(SYSDATE - 7)
+                 WHERE s.SITE_TYPE = 'SUPERMARKET'
+                 GROUP BY s.SITE_CODE
+                 ORDER BY value DESC
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [ #DEFAULT# t-Region--scrollBody ]
+        }
+    )
+
+    region report-transferts-en-cours (
+        name: Transferts en Cours
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: TES-TRANSFER
+        }
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
+        }
+        link {
+            linkColumn: customTarget
+            target: {
+                page: 105
+                items: { P105_ID: \#ID#\ }
+                action: resetPagination
+            }
+            linkIcon: <span class="fa fa-edit"></span>
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucun transfert en cours.
+            whenMoreDataFound: Trop de résultats. Affiner le filtre.
+        }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: Numéro } layout { sequence: 1 } source { dataType: STRING } )
+        column SITE_SOURCE_ID ( type: plainText; heading { heading: Source } layout { sequence: 2 } source { dataType: STRING } )
+        column SITE_DEST_ID ( type: plainText; heading { heading: Destination } layout { sequence: 3 } source { dataType: STRING } )
+        column ETAT ( type: plainText; heading { heading: État } layout { sequence: 4 } source { dataType: STRING } )
+        column PRIORITY ( type: plainText; heading { heading: Priorité } layout { sequence: 5 } source { dataType: STRING } )
+        column DATDEMANDE ( type: plainText; heading { heading: Demandé le } layout { sequence: 6 } source { dataType: DATE } )
+        column DATENVOI_SOUHAITEE ( type: plainText; heading { heading: Envoi prévu } layout { sequence: 7 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 15 }
+            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+    region report-dernieres-synchs (
+        name: Dernières Synchronisations
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: HQ_SYNC_LOG
+        }
+        layout {
+            sequence: 70
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune synchronisation enregistrée.
+        }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SYNC_DATETIME ( type: plainText; heading { heading: Date/Heure } layout { sequence: 1 } source { dataType: DATE } )
+        column SYNC_TYPE ( type: plainText; heading { heading: Type } layout { sequence: 2 } source { dataType: STRING } )
+        column SYNC_STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
+        column RECORDS_PROCESSED ( type: plainText; heading { heading: Lignes; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column ERROR_MESSAGE ( type: plainText; heading { heading: Message } layout { sequence: 5 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 10 }
+            sort ( column: SYNC_DATETIME; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+)

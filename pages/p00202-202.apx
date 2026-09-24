@@ -1,95 +1,160 @@
 page 202 (
-    name: Demande R?appro
-    title: Demande R?approvisionnement
+    name: Demande Réappro
+    alias: SM-DEMANDE-REAPPRO
+    title: Demande de Réapprovisionnement
     pageGroup: @supermarche
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Créer une demande de transfert au dépôt central ou au dépôt de rattachement.</p>
+            <p>Le dépôt cible est choisi automatiquement (dépôt parent).</p>
+            ```
     }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Demande R?approvisionnement
-        type: interactiveReport
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region info-depot (
+        name: Dépôt destinataire
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
-            location: localDatabase
-            tableName: "TES-TRANSFER"
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_depot_code VARCHAR2(20);
+                    v_depot_name VARCHAR2(200);
+                BEGIN
+                    SELECT s.SITE_CODE, s.SITE_NAME
+                      INTO v_depot_code, v_depot_name
+                      FROM "TES-SITE" me
+                      JOIN "TES-SITE" s ON s.ID = me.PARENT_SITE_ID
+                     WHERE me.ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
+
+                    htp.p('<div class="u-info-row">');
+                    htp.p('Votre demande sera envoyée au dépôt <b>' || v_depot_code || '</b> — '
+                          || v_depot_name || '.');
+                    htp.p('</div>');
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        htp.p('<div class="u-warning">⚠ Aucun dépôt parent défini pour ce site.</div>');
+                END;
+                ```
         }
-        layout {
-            sequence: 10
-            slot: body
-        }
+    )
+
+    region transfert-form (
+        name: Caractéristiques Transfert
+        type: form
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ add ] }
+    )
+
+    pageItem P202_ID ( type: hidden; layout { sequence: 10; region: @transfert-form; slot: regionBody } source { formRegion: @transfert-form; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P202_PRIORITY ( type: selectList; label { label: Priorité; alignment: right } layout { sequence: 20; region: @transfert-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
+        { returnValue: NORMALE; displayValue: Normale (5-7 jours) }
+        { returnValue: URGENTE; displayValue: Urgente (24-48h) }
+        { returnValue: CRITIQUE; displayValue: Critique (sous 24h) }
+    ] } source { formRegion: @transfert-form; column: PRIORITY; dataType: varchar2 } validation { required: true } )
+    pageItem P202_DATENVOI_SOUHAITEE ( type: datePicker; label { label: Date envoi souhaitée; alignment: right } layout { sequence: 30; region: @transfert-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @transfert-form; column: DATENVOI_SOUHAITEE; dataType: date } )
+    pageItem P202_TRANSPORT_MODE ( type: textField; label { label: Mode transport; alignment: right } layout { sequence: 40; region: @transfert-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { maxLength: 30 } source { formRegion: @transfert-form; column: TRANSPORT_MODE; dataType: varchar2 } )
+    pageItem P202_COMMENTAIRE ( type: textarea; label { label: Motif / commentaire; alignment: right } layout { sequence: 50; region: @transfert-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60; height: 3 } validation { maxLength: 1000 } source { formRegion: @transfert-form; column: COMMENTAIRE_DEMANDE; dataType: varchar2 } )
+
+    region articles-disponibles (
+        name: Articles à commander
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 30; slot: body }
         appearance {
             template: @/interactive-report
-            templateOptions: #DEFAULT#
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun stock. }
 
-        column TRANSFER_NUM (
-            type: plainText
-            heading {
-                heading: "Transfert"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_SOURCE_ID (
-            type: plainText
-            heading {
-                heading: "Source"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_DEST_ID (
-            type: plainText
-            heading {
-                heading: "Destination"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column ETAT (
-            type: plainText
-            heading {
-                heading: "?tat"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column COMMENTAIRE_DEMANDE (
-            type: plainText
-            heading {
-                heading: "Commentaire"
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_ID ( type: hidden; layout { sequence: 0 } source { dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: Article } layout { sequence: 1 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: Stock; alignment: end } layout { sequence: 2; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMAX ( type: plainText; heading { heading: Max; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
         )
     )
+
+    button submit-transfer (
+        buttonName: SUBMIT
+        label: Créer Demande
+        layout { sequence: 100; region: @transfert-form; slot: next }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior { warnOnUnsavedChanges: doNotCheck }
+    )
+
+    process create-transfer (
+        name: Create Transfer Request
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_transfer_id  NUMBER;
+                    v_depot_id     NUMBER;
+                    v_depot_code   VARCHAR2(20);
+                    v_user_site_id NUMBER;
+                BEGIN
+                    v_user_site_id := TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
+
+                    -- Trouver le dépôt parent
+                    SELECT PARENT_SITE_ID INTO v_depot_id
+                      FROM "TES-SITE" WHERE ID = v_user_site_id;
+                    IF v_depot_id IS NULL THEN
+                        RAISE_APPLICATION_ERROR(-20200, 'Aucun dépôt parent pour ce site');
+                    END IF;
+                    SELECT SITE_CODE INTO v_depot_code FROM "TES-SITE" WHERE ID = v_depot_id;
+
+                    -- Créer la demande (source = dépôt, dest = SM)
+                    INSERT INTO "TES-TRANSFER"
+                        (SITE_SOURCE_ID, SITE_DEST_ID, PRIORITY, DATENVOI_SOUHAITEE,
+                         TRANSPORT_MODE, COMMENTAIRE_DEMANDE, CUTI_DEMANDE)
+                    VALUES
+                        (v_depot_id, v_user_site_id, :P202_PRIORITY, :P202_DATENVOI_SOUHAITEE,
+                         :P202_TRANSPORT_MODE, :P202_COMMENTAIRE, USER)
+                    RETURNING ID INTO v_transfer_id;
+
+                    :P202_ID := v_transfer_id;
+
+                    -- Audit
+                    INSERT INTO "TES-SITE-AUDIT" (SITE_ID, AUDIT_TYPE, ENTITY_TABLE, ENTITY_ID, ACTION, USER_NAME, DETAILS)
+                    VALUES (v_user_site_id, 'TRANSFER_CREATED', 'TES-TRANSFER', v_transfer_id, 'CREATE', USER,
+                            'Demande vers ' || v_depot_code || ' (priority=' || :P202_PRIORITY || ')');
+
+                    COMMIT;
+
+                    htp.p('<div class="u-success">✓ Demande créée, ID=' || v_transfer_id || '</div>');
+                EXCEPTION
+                    WHEN OTHERS THEN
+                        ROLLBACK;
+                        RAISE_APPLICATION_ERROR(-20201, 'Erreur création demande: ' || SQLERRM);
+                END;
+                ```
+        }
+        execution { sequence: 10 }
+    )
+
 )

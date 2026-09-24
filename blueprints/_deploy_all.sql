@@ -194,18 +194,23 @@ CREATE TABLE "TES-SITE-AUDIT" (
 CREATE INDEX idx_tes_audit_site ON "TES-SITE-AUDIT"(SITE_ID);
 CREATE INDEX idx_tes_audit_dt   ON "TES-SITE-AUDIT"(AUDIT_DATETIME DESC);
 
--- 8. Users multi-tenant
+-- 8. Users multi-tenant (cohérent avec 05_authz_site_ctx.sql)
 CREATE TABLE "TES-USER" (
     ID              NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     USERNAME        VARCHAR2(100 CHAR) NOT NULL,
+    USER_FULLNAME   VARCHAR2(400 CHAR),
+    EMAIL           VARCHAR2(200 CHAR),
     SITE_ID         NUMBER NOT NULL,
     USER_ROLE       VARCHAR2(30 CHAR) DEFAULT 'SM_USER' NOT NULL,
     ACTIVE          VARCHAR2(1 CHAR) DEFAULT 'Y' NOT NULL,
     DATCRE          DATE DEFAULT SYSDATE NOT NULL,
+    DATMOD          DATE,
     CONSTRAINT uk_tes_user_name UNIQUE (USERNAME),
     CONSTRAINT fk_tes_user_site FOREIGN KEY (SITE_ID) REFERENCES "TES-SITE"(ID),
     CONSTRAINT ck_tes_user_role CHECK (USER_ROLE IN ('HQ_ADMIN','SM_MANAGER','SM_USER','DEPOT_USER'))
 );
+
+CREATE INDEX idx_tes_user_site ON "TES-USER"(SITE_ID);
 
 -- 9. Agrégation ventes journalières
 CREATE TABLE "HQ_VENTES_JOUR" (
@@ -341,11 +346,15 @@ INSERT INTO "TES-MAGASIN" (SITE_ID, MAGASIN_CODE, MAGASIN_NAME, CASHIER_COUNT, P
 SELECT ID, 'HQ-CAISSE-1', 'Siège - Bureau Achats', 1, 0
 FROM "TES-SITE" WHERE SITE_CODE='HQ';
 
--- Users de test
-INSERT INTO "TES-USER" (USERNAME, SITE_ID, USER_ROLE) VALUES ('admin',       (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='HQ'),  'HQ_ADMIN');
-INSERT INTO "TES-USER" (USERNAME, SITE_ID, USER_ROLE) VALUES ('manager_sm1', (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'), 'SM_MANAGER');
-INSERT INTO "TES-USER" (USERNAME, SITE_ID, USER_ROLE) VALUES ('caissier_sm1',(SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'), 'SM_USER');
-INSERT INTO "TES-USER" (USERNAME, SITE_ID, USER_ROLE) VALUES ('depot_p',     (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='DEP_P'), 'DEPOT_USER');
+-- Users de test (cohérent avec 05_authz_site_ctx.sql)
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('admin',        'Administrateur HQ',         'admin@retailchain.com',         (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='HQ'),    'HQ_ADMIN');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('manager_sm1',  'Manager Supermarché SM1',  'sm1.manager@retailchain.com',   (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'),  'SM_MANAGER');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('caissier_sm1', 'Caissier SM1',              'sm1.caissier@retailchain.com',  (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'),  'SM_USER');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('depot_p',      'Chef Dépôt Principal',     'depot.p@retailchain.com',       (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='DEP_P'), 'DEPOT_USER');
 
 -- Stock initial de démonstration (quelques articles par site)
 DECLARE

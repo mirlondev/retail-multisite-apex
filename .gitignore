@@ -1,0 +1,114 @@
+# =====================================================================
+# .gitignore — retail-multisite-apex
+# =====================================================================
+
+# --- OS / éditeur ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+nbproject/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# --- Logs Oracle et dumps ---
+*.log
+*.log.*
+*.trc
+*.aud
+*.dmp
+*.exp
+*.dat
+*.lst
+export_*.sql
+import_*.sql
+
+# --- Secrets / config locale (NE JAMAIS COMMITER) ---
+*.env
+.env
+.env.local
+.env.*.local
+secrets.yaml
+secrets.yml
+*.pem
+*.key
+*.p12
+*.pfx
+config.local.json
+config.local.yaml
+database_password.txt
+apex_passwords.txt
+
+# --- Artefacts de build ---
+target/
+build/
+dist/
+out/
+*.war
+*.ear
+*.jar
+*.class
+node_modules/
+*.tgz
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# --- Fichiers utilisateurs spécifiques ---
+*.personal.*
+workspaces/
+*.bakup
+*~
+.~*
+
+# --- PL/SQL Developer / SQL Navigator ---
+.pls.*
+*.tpb
+*.tps
+
+# --- ApexLang spécifique ---
+*.apx.bak
+*.apx.tmp
+*.apx.swp
+
+# --- Apex export runtime ---
+apex/
+!apex/.gitkeep
+
+# --- Documentation builds ---
+docs/_build/
+docs/build/
+site/
+
+# --- OS Windows / Mac spécifiques ---
+[Bb]ackup*
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# --- Ne pas ignorer ---
+!README.md
+!.gitignore
+!.gitkeep
+!.github/

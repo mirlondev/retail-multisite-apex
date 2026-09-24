@@ -5,36 +5,53 @@
 
 ALTER SESSION SET CURRENT_SCHEMA = ERP_APP;
 
+-- =====================================================================
+-- 05_authz_site_ctx.sql
+-- Authentification multi-tenant APEX : pose le SITE_CTX selon l'utilisateur
+-- =====================================================================
+
+ALTER SESSION SET CURRENT_SCHEMA = ERP_APP;
+
 -- ---------------------------------------------------------------------
 -- Table des utilisateurs avec site par défaut
+-- (Le CREATE TABLE est dans 01_schema_multisite.sql / _deploy_all.sql
+--  Ce script installe les packages, fonctions et vue.)
 -- ---------------------------------------------------------------------
+-- Ne pas recréer la table si elle existe déjà (cohérence avec 01)
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE "TES-USER" CASCADE CONSTRAINTS PURGE';
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
+/
+
 CREATE TABLE "TES-USER" (
     ID              NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    USERNAME        VARCHAR2(200 CHAR) NOT NULL,
+    USERNAME        VARCHAR2(100 CHAR) NOT NULL,
     USER_FULLNAME   VARCHAR2(400 CHAR),
     EMAIL           VARCHAR2(200 CHAR),
-    DEFAULT_SITE_ID NUMBER NOT NULL,
-    ROLE            VARCHAR2(50 CHAR) DEFAULT 'SM_USER',  -- HQ_ADMIN, SM_MANAGER, SM_USER, DEPOT_USER
-    ACTIVE          VARCHAR2(1 CHAR) DEFAULT 'Y',
-    DATCRE          DATE DEFAULT SYSDATE,
+    SITE_ID         NUMBER NOT NULL,
+    USER_ROLE       VARCHAR2(30 CHAR) DEFAULT 'SM_USER' NOT NULL,
+    ACTIVE          VARCHAR2(1 CHAR) DEFAULT 'Y' NOT NULL,
+    DATCRE          DATE DEFAULT SYSDATE NOT NULL,
     DATMOD          DATE,
-    CONSTRAINT uk_tes_user UNIQUE (USERNAME),
-    CONSTRAINT fk_tes_user_site FOREIGN KEY (DEFAULT_SITE_ID) REFERENCES "TES-SITE"(ID)
+    CONSTRAINT uk_tes_user_name UNIQUE (USERNAME),
+    CONSTRAINT fk_tes_user_site FOREIGN KEY (SITE_ID) REFERENCES "TES-SITE"(ID),
+    CONSTRAINT ck_tes_user_role CHECK (USER_ROLE IN ('HQ_ADMIN','SM_MANAGER','SM_USER','DEPOT_USER'))
 );
 
-CREATE INDEX idx_tes_user_site ON "TES-USER"(DEFAULT_SITE_ID);
+CREATE INDEX idx_tes_user_site ON "TES-USER"(SITE_ID);
 
 -- ---------------------------------------------------------------------
 -- Seed d'utilisateurs de test
 -- ---------------------------------------------------------------------
-INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, DEFAULT_SITE_ID, ROLE) VALUES
-    ('admin', 'Administrateur HQ', 'admin@retailchain.com', (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='HQ'), 'HQ_ADMIN');
-INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, DEFAULT_SITE_ID, ROLE) VALUES
-    ('manager_sm1', 'Manager Supermarché SM1', 'sm1.manager@retailchain.com', (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'), 'SM_MANAGER');
-INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, DEFAULT_SITE_ID, ROLE) VALUES
-    ('caissier_sm1', 'Caissier SM1', 'sm1.caissier@retailchain.com', (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'), 'SM_USER');
-INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, DEFAULT_SITE_ID, ROLE) VALUES
-    ('depot_p', 'Chef Dépôt Principal', 'depot.p@retailchain.com', (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='DEP_P'), 'DEPOT_USER');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('admin',        'Administrateur HQ',         'admin@retailchain.com',         (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='HQ'),    'HQ_ADMIN');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('manager_sm1',  'Manager Supermarché SM1',  'sm1.manager@retailchain.com',   (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'),  'SM_MANAGER');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('caissier_sm1', 'Caissier SM1',              'sm1.caissier@retailchain.com',  (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='SM1'),  'SM_USER');
+INSERT INTO "TES-USER" (USERNAME, USER_FULLNAME, EMAIL, SITE_ID, USER_ROLE) VALUES
+    ('depot_p',      'Chef Dépôt Principal',     'depot.p@retailchain.com',       (SELECT ID FROM "TES-SITE" WHERE SITE_CODE='DEP_P'), 'DEPOT_USER');
 COMMIT;
 
 -- ---------------------------------------------------------------------
@@ -47,10 +64,10 @@ CREATE OR REPLACE PROCEDURE set_site_ctx_for_user(p_username IN VARCHAR2) IS
     v_site_type VARCHAR2(30);
     v_role VARCHAR2(50);
 BEGIN
-    SELECT u.DEFAULT_SITE_ID, s.SITE_CODE, s.SITE_TYPE, u.ROLE
+    SELECT u.SITE_ID, s.SITE_CODE, s.SITE_TYPE, u.USER_ROLE
       INTO v_site_id, v_site_code, v_site_type, v_role
       FROM "TES-USER" u
-      JOIN "TES-SITE" s ON s.ID = u.DEFAULT_SITE_ID
+      JOIN "TES-SITE" s ON s.ID = u.SITE_ID
      WHERE u.USERNAME = UPPER(p_username) AND u.ACTIVE='Y';
 
     DBMS_SESSION.SET_CONTEXT('SITE_CTX', 'SITE_ID', v_site_id);

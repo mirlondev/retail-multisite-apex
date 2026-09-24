@@ -9,87 +9,189 @@ page 100 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
-    region data (
-        name: Pilotage Multi-Sites
-        type: interactiveReport
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-ca-today (
+        name: CA Aujourd'hui (tous sites)
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
-            location: localDatabase
-            tableName: "TES-SITE"
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_ca_ttc    NUMBER := 0;
+                    v_nb_tickets NUMBER := 0;
+                    v_nb_sites  NUMBER := 0;
+                BEGIN
+                    SELECT NVL(SUM(NVL(TOTAL_TTC,0)), 0),
+                           NVL(SUM(NVL(NUMTICKETS,0)), 0),
+                           COUNT(DISTINCT SITE_ID)
+                      INTO v_ca_ttc, v_nb_tickets, v_nb_sites
+                      FROM HQ_VENTES_JOUR
+                     WHERE JOUR = TRUNC(SYSDATE);
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || TO_CHAR(v_ca_ttc, 'FM999G999G999D00') || ' €</b><br>CA TTC aujourd''hui</div>');
+                    htp.p('  <div class="kpi"><b>' || v_nb_tickets || '</b><br>tickets</div>');
+                    htp.p('  <div class="kpi"><b>' || v_nb_sites || '</b><br>sites actifs</div>');
+                    htp.p('</div>');
+                END;
+                ```
         }
-        layout {
-            sequence: 10
-            slot: body
+    )
+
+    region kpi-stock-alerts (
+        name: Alertes Stock
+        type: staticContent
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_ruptures  NUMBER := 0;
+                    v_alertes   NUMBER := 0;
+                    v_total_articles NUMBER := 0;
+                BEGIN
+                    SELECT COUNT(*),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) > 0 AND NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 1 ELSE 0 END)
+                      INTO v_total_articles, v_ruptures, v_alertes
+                      FROM "TES-STOCK-SITE";
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_total_articles || '</b><br>articles référencés</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_ruptures || '</b><br>ruptures</div>');
+                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_alertes || '</b><br>alertes min</div>');
+                    htp.p('</div>');
+                END;
+                ```
         }
+    )
+
+    region kpi-transferts (
+        name: Transferts en Cours
+        type: staticContent
+        layout { sequence: 30; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_demande    NUMBER := 0;
+                    v_prepa      NUMBER := 0;
+                    v_transit    NUMBER := 0;
+                    v_recu_7j    NUMBER := 0;
+                BEGIN
+                    SELECT
+                        SUM(CASE WHEN ETAT='DEMANDE' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN ETAT='EN_PREPARATION' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN ETAT='EN_TRANSIT' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN ETAT='RECEPTIONNE' AND DATRECEPT_EFFECTIVE >= SYSDATE - 7 THEN 1 ELSE 0 END)
+                      INTO v_demande, v_prepa, v_transit, v_recu_7j
+                      FROM "TES-TRANSFER";
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_demande || '</b><br>demande</div>');
+                    htp.p('  <div class="kpi"><b>' || v_prepa || '</b><br>préparation</div>');
+                    htp.p('  <div class="kpi"><b>' || v_transit || '</b><br>en transit</div>');
+                    htp.p('  <div class="kpi"><b>' || v_recu_7j || '</b><br>reçus (7j)</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region kpi-synchro (
+        name: État Synchronisation (24h)
+        type: staticContent
+        layout { sequence: 40; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_ok   NUMBER := 0;
+                    v_ko   NUMBER := 0;
+                    v_last TIMESTAMP;
+                BEGIN
+                    SELECT SUM(CASE WHEN SYNC_STATUS='SUCCESS' AND SYNC_DATETIME >= SYSDATE - 1 THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN SYNC_STATUS='FAILED'  AND SYNC_DATETIME >= SYSDATE - 1 THEN 1 ELSE 0 END),
+                           MAX(SYNC_DATETIME)
+                      INTO v_ok, v_ko, v_last
+                      FROM HQ_SYNC_LOG;
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi" style="color:green"><b>' || v_ok || '</b><br>synchros OK (24h)</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_ko || '</b><br>échecs (24h)</div>');
+                    htp.p('  <div class="kpi"><b>' || TO_CHAR(v_last, 'DD/MM HH24:MI') || '</b><br>dernière synchro</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region chart-ca-par-site (
+        name: CA par Site (7 derniers jours)
+        type: chart
+        source {
+            type: pie
+            sqlQuery:
+                ```sql
+                SELECT s.SITE_CODE AS label,
+                       NVL(SUM(v.TOTAL_TTC), 0) AS value
+                  FROM "TES-SITE" s
+                  LEFT JOIN HQ_VENTES_JOUR v ON v.SITE_ID = s.ID
+                                            AND v.JOUR >= TRUNC(SYSDATE - 7)
+                 WHERE s.SITE_TYPE = 'SUPERMARKET'
+                 GROUP BY s.SITE_CODE
+                 ORDER BY value DESC
+                ```
+        }
+        layout { sequence: 50; slot: body }
+        appearance { template: @/standard; templateOptions: [ #DEFAULT# t-Region--scrollBody ] }
+    )
+
+    region sites-list (
+        name: Sites de la Chaîne
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-SITE" }
+        layout { sequence: 60; slot: body }
         appearance {
             template: @/interactive-report
-            templateOptions: #DEFAULT#
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
         }
-        pagination {
-            type: rowRangesXToY
-        }
+        pagination { type: rowRangesXToY }
         messages {
-            whenNoDataFound: Aucune donn?e disponible.
+            whenNoDataFound: Aucun site configuré.
         }
 
-        column SITE_CODE (
-            type: plainText
-            heading {
-                heading: "Code"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_NAME (
-            type: plainText
-            heading {
-                heading: "Nom"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_TYPE (
-            type: plainText
-            heading {
-                heading: "Type"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column CITY (
-            type: plainText
-            heading {
-                heading: "Ville"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column ACTIVE (
-            type: plainText
-            heading {
-                heading: "Actif"
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_CODE ( type: plainText; heading { heading: Code } layout { sequence: 1 } source { dataType: STRING } )
+        column SITE_NAME ( type: plainText; heading { heading: Nom } layout { sequence: 2 } source { dataType: STRING } )
+        column SITE_TYPE ( type: plainText; heading { heading: Type } layout { sequence: 3 } source { dataType: STRING } )
+        column PARENT_SITE_ID ( type: plainText; heading { heading: Parent } layout { sequence: 4 } source { dataType: STRING } )
+        column CITY ( type: plainText; heading { heading: Ville } layout { sequence: 5 } source { dataType: STRING } )
+        column ACTIVE ( type: plainText; heading { heading: Actif } layout { sequence: 6 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 15 }
+            sort ( column: SITE_TYPE; sort { sequence: 1 } )
         )
     )
+
 )

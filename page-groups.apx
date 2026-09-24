@@ -9,3 +9,11 @@ pageGroup hq (
 pageGroup supermarche (
     name: Supermarché
 )
+
+pageGroup inventaire (
+    name: Inventaire
+)
+
+pageGroup depots (
+    name: Dépôts
+)

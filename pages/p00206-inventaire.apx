@@ -1,0 +1,136 @@
+page 206 (
+    name: Inventaire SM
+    alias: SM-INVENTAIRE
+    title: Inventaire Magasin
+    pageGroup: @supermarche
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Saisie d'inventaire physique pour le site courant.</p>
+            <p>Le stock physique est mis à jour avec la valeur saisie, le stock théorique reste inchangé (écart = physique - théorique).</p>
+            <p>Pour valider l'inventaire et générer les écarts, cliquer sur "Clôturer l'inventaire".</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-stock (
+        name: État Stock avant Inventaire
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_total NUMBER := 0;
+                    v_ecart NUMBER := 0;
+                    v_valeur NUMBER := 0;
+                BEGIN
+                    SELECT COUNT(*),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <> NVL(QTETHEORIQUE,0) THEN 1 ELSE 0 END),
+                           SUM(NVL(QTEPHYSIQUE,0) - NVL(QTETHEORIQUE,0))
+                      INTO v_total, v_ecart, v_valeur
+                      FROM "TES-STOCK-SITE"
+                     WHERE SITE_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_total || '</b><br>articles</div>');
+                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_ecart || '</b><br>avec écart</div>');
+                    htp.p('  <div class="kpi"><b>' || v_valeur || '</b><br>écart cumulé</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region inventaire-form (
+        name: Saisie Comptage Physique
+        type: form
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ update ] }
+    )
+
+    pageItem P206_ID ( type: hidden; layout { sequence: 10; region: @inventaire-form; slot: regionBody } source { formRegion: @inventaire-form; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P206_CODART ( type: textField; label { label: Article; alignment: right } layout { sequence: 20; region: @inventaire-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @inventaire-form; column: CODART; dataType: varchar2 } )
+    pageItem P206_QTEPHYSIQUE ( type: numberField; label { label: Qté comptée; alignment: right } layout { sequence: 30; region: @inventaire-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @inventaire-form; column: QTEPHYSIQUE; dataType: number } )
+    pageItem P206_DERNIER_MVT ( type: datePicker; label { label: Date comptage; alignment: right } layout { sequence: 40; region: @inventaire-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @inventaire-form; column: DERNIER_MVT; dataType: date } )
+
+    button save-count (
+        buttonName: SAVE
+        label: Enregistrer comptage
+        layout { sequence: 50; region: @inventaire-form; slot: next }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: update }
+    )
+
+    process process-form (
+        name: Process Inventaire
+        type: formAutoRowProcessing
+        formRegion: @inventaire-form
+        execution { sequence: 10 }
+    )
+
+    process audit-log (
+        name: Log Audit Inventaire
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    INSERT INTO "TES-SITE-AUDIT" (SITE_ID, AUDIT_TYPE, ENTITY_TABLE, ENTITY_ID, ACTION, USER_NAME, DETAILS)
+                    VALUES (
+                        TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID')),
+                        'STOCK_INVENTORY',
+                        'TES-STOCK-SITE',
+                        :P206_ID,
+                        'UPDATE',
+                        USER,
+                        'Article ' || :P206_CODART || ' : nouvelle qte physique = ' || :P206_QTEPHYSIQUE
+                    );
+                    COMMIT;
+                END;
+                ```
+        }
+        execution { sequence: 20 }
+        serverSideCondition { type: requestIsContainedInValue; value: SAVE }
+    )
+
+    region stock-list (
+        name: Stock Site Courant (avec écarts)
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 30; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun stock. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: Article } layout { sequence: 1 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: Phys.; alignment: end } layout { sequence: 2; columnAlignment: end } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: Théo.; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column ECART ( type: plainText; heading { heading: Écart; alignment: end } layout { sequence: 4; columnAlignment: end } source: QTEPHYSIQUE-QTETHEORIQUE } )
+        column DERNIER_MVT ( type: plainText; heading { heading: Dernier Mvt } layout { sequence: 5 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: CODART; sort { sequence: 1 } )
+        )
+    )
+
+)

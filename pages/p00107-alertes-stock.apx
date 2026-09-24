@@ -1,0 +1,110 @@
+page 107 (
+    name: Alertes Stock HQ
+    alias: HQ-ALERTES-STOCK
+    title: Alertes Stock Multi-Sites
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Vue consolidée des alertes stock sur tous les sites.</p>
+            <p>Articles en rupture (rouge) ou sous le minimum (orange).</p>
+            <p>Pour réagir : aller sur le SM Dashboard ou demander un réappro.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-alertes (
+        name: Vue d'ensemble Alertes
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_sites_alerte NUMBER := 0;
+                    v_ruptures    NUMBER := 0;
+                    v_alertes     NUMBER := 0;
+                    v_total_ref   NUMBER := 0;
+                BEGIN
+                    SELECT COUNT(DISTINCT SITE_ID),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) > 0 AND NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 1 ELSE 0 END),
+                           COUNT(*)
+                      INTO v_sites_alerte, v_ruptures, v_alertes, v_total_ref
+                      FROM "TES-STOCK-SITE";
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_total_ref || '</b><br>références total</div>');
+                    htp.p('  <div class="kpi"><b>' || v_sites_alerte || '</b><br>sites avec alertes</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_ruptures || '</b><br>ruptures</div>');
+                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_alertes || '</b><br>alertes min</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region chart-alertes-par-site (
+        name: Alertes par site
+        type: chart
+        source {
+            type: bar
+            sqlQuery:
+                ```sql
+                SELECT s.SITE_CODE AS label,
+                       SUM(CASE WHEN NVL(t.QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END) AS ruptures,
+                       SUM(CASE WHEN NVL(t.QTEPHYSIQUE,0) > 0
+                                  AND NVL(t.QTEPHYSIQUE,0) <= NVL(t.QTEMIN, NVL(t.QTESEC,0))
+                                 THEN 1 ELSE 0 END) AS alertes
+                  FROM "TES-SITE" s
+                  LEFT JOIN "TES-STOCK-SITE" t ON t.SITE_ID = s.ID
+                 WHERE s.SITE_TYPE IN ('SUPERMARKET','DEPOT_PRINCIPAL','DEPOT_SM')
+                 GROUP BY s.SITE_CODE
+                 ORDER BY ruptures DESC, alertes DESC
+                ```
+        }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/standard; templateOptions: [ #DEFAULT# t-Region--scrollBody ] }
+    )
+
+    region detail-alertes (
+        name: Détail Articles en Alerte
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 30; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune alerte stock. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_ID ( type: plainText; heading { heading: Site } layout { sequence: 1 } source { dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: Article } layout { sequence: 2 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: Phys.; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: Théo.; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column QTESEC ( type: plainText; heading { heading: Sécur.; alignment: end } layout { sequence: 6; columnAlignment: end } source { dataType: NUMBER } )
+        column ETAT ( type: plainText; heading { heading: État } layout { sequence: 7; source: CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 'RUPTURE' WHEN NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 'CRITIQUE' ELSE 'BAS' END } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 100 }
+            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
+        )
+    )
+
+)

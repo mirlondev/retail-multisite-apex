@@ -1,0 +1,105 @@
+page 108 (
+    name: Rapports HQ
+    alias: HQ-RAPPORTS
+    title: Rapports et Exports
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    help {
+        helpText:
+            ```html
+            <p>Génération de rapports HQ multi-sites.</p>
+            <p>Choisissez une période et un type de rapport, puis téléchargez.</p>
+            ```
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region filtres (
+        name: Paramètres du Rapport
+        type: form
+        source { location: localDatabase; tableName: HQ_VENTES_JOUR }
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+    )
+
+    pageItem P108_TYPE ( type: selectList; label { label: Type de rapport; alignment: right } layout { sequence: 10; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } lov { staticValues: [
+        { returnValue: VENTES_JOUR; displayValue: Ventes journalières par site }
+        { returnValue: STOCK_SITE; displayValue: État du stock par site }
+        { returnValue: TRANSFERTS; displayValue: Transferts inter-sites }
+        { returnValue: SYNCHRO; displayValue: Logs de synchronisation HQ }
+    ] } default { staticValue: VENTES_JOUR } validation { required: true } )
+    pageItem P108_DATE_DEBUT ( type: datePicker; label { label: Date début; alignment: right } layout { sequence: 20; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } default { staticValue: "TRUNC(SYSDATE) - 30" } validation { required: true } )
+    pageItem P108_DATE_FIN ( type: datePicker; label { label: Date fin; alignment: right } layout { sequence: 30; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } default { staticValue: "TRUNC(SYSDATE)" } validation { required: true } )
+
+    button export-csv (
+        buttonName: EXPORT_CSV
+        label: Exporter CSV
+        layout { sequence: 100; region: @filtres; slot: next }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior {
+            action: redirectUrl
+            url: "f?p=&APP_ID.:108:&SESSION.:CSV:&P108_TYPE.&P108_DATE_DEBUT.&P108_DATE_FIN."
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    button export-pdf (
+        buttonName: EXPORT_PDF
+        label: Exporter PDF
+        layout { sequence: 110; region: @filtres; slot: next }
+        appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# }
+        behavior {
+            action: redirectUrl
+            url: "f?p=&APP_ID.:108:&SESSION.:PDF:&P108_TYPE.&P108_DATE_DEBUT.&P108_DATE_FIN."
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    region rapport-content (
+        name: Résultat du Rapport
+        type: interactiveReport
+        source {
+            location: localDatabase
+            sqlQuery:
+                ```sql
+                SELECT
+                    JOUR, SITE_ID, NUMTICKETS,
+                    TOTAL_HT, TOTAL_TTC, TOTAL_REMISE, TOTAL_NET,
+                    MONTANT_ESPECES, MONTANT_CB, MONTANT_CHEQUE, MONTANT_AUTRE
+                  FROM HQ_VENTES_JOUR
+                 WHERE JOUR BETWEEN :P108_DATE_DEBUT AND :P108_DATE_FIN
+                 ORDER BY JOUR DESC, SITE_ID
+                ```
+        }
+        layout { sequence: 20; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune donnée sur la période sélectionnée. }
+
+        column JOUR ( type: plainText; heading { heading: Jour } layout { sequence: 1 } source { dataType: DATE } )
+        column SITE_ID ( type: plainText; heading { heading: Site } layout { sequence: 2 } source { dataType: NUMBER } )
+        column NUMTICKETS ( type: plainText; heading { heading: Tickets; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column TOTAL_HT ( type: plainText; heading { heading: Total HT; alignment: end } layout { sequence: 4; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+        column TOTAL_TTC ( type: plainText; heading { heading: Total TTC; alignment: end } layout { sequence: 5; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+        column TOTAL_NET ( type: plainText; heading { heading: Net; alignment: end } layout { sequence: 6; columnAlignment: end } appearance { formatMask: 999G999G990D00 } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 100 }
+            sort ( column: JOUR; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+)

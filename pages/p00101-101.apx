@@ -1,6 +1,5 @@
 page 101 (
     name: Liste des Sites
-    alias: HQ-SITES
     title: Gestion des Sites
     pageGroup: @hq
     appearance {
@@ -10,79 +9,104 @@ page 101 (
     navigation {
         cursorFocus: doNotFocusCursor
     }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
-
-    region breadcrumb (
-        name: Breadcrumb
-        type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
-    )
-
-    region sites (
-        name: Sites
+    region data (
+        name: Gestion des Sites
         type: interactiveReport
-        source { location: localDatabase; tableName: "TES-SITE" }
-        layout { sequence: 10; slot: body }
-        appearance {
-            template: @/interactive-report
-            templateOptions: [
-                #DEFAULT#
-                t-IRR-region--hideHeader
-                js-addHiddenHeadingRoleDesc
-            ]
+        source {
+            location: localDatabase
+            tableName: "TES-SITE"
         }
-        link {
-            linkColumn: customTarget
-            target: { page: 102; items: { P102_ID: \#ID#\ }; action: resetPagination }
-            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
-        }
-        pagination { type: rowRangesXToY }
-        messages { whenNoDataFound: Aucun site configuré. Lancez @blueprints/02_seed_sites.sql }
-
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column SITE_CODE ( type: plainText; heading { heading: "Code" } layout { sequence: 10 } source { dataType: STRING } )
-        column SITE_NAME ( type: plainText; heading { heading: "Nom" } layout { sequence: 20 } source { dataType: STRING } )
-        column SITE_TYPE ( type: plainText; heading { heading: "Type" } layout { sequence: 30 } source { dataType: STRING } )
-        column PARENT_SITE_ID ( type: plainText; heading { heading: "Parent" } layout { sequence: 40 } source { dataType: NUMBER } )
-        column CITY ( type: plainText; heading { heading: "Ville" } layout { sequence: 50 } source { dataType: STRING } )
-        column PHONE ( type: plainText; heading { heading: "Téléphone" } layout { sequence: 60 } source { dataType: STRING } )
-        column ACTIVE ( type: plainText; heading { heading: "Actif" } layout { sequence: 70 } source { dataType: STRING } )
-
-        savedReport primary (
-            visibility: primaryDefault
-            view { rowsPerPage: 25 }
-            sort ( column: SITE_TYPE; sort { sequence: 1 } )
-        )
-    )
-
-    button create-site (
-        buttonName: CREATE
-        label: Nouveau Site
         layout {
             sequence: 10
-            region: @sites
-            slot: rightOfInteractiveReportSearchBar
+            slot: body
         }
-        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
-        behavior {
-            action: redirectThisApp
-            target: { page: 102; clearCache: 102 }
-            warnOnUnsavedChanges: doNotCheck
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
         }
-    )
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
 
-    dynamicAction edit-closed (
-        name: Edit Closed
-        execution { sequence: 10 }
-        when { event: apexafterclosedialog; selectionType: region; region: @sites }
-        action native-refresh (
-            action: refresh
-            affectedElements { selectionType: region; region: @sites }
-            execution { sequence: 10; fireOnInit: false }
+        column SITE_CODE (
+            type: plainText
+            heading {
+                heading: "Code"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
         )
+        column SITE_NAME (
+            type: plainText
+            heading {
+                heading: "Nom"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_TYPE (
+            type: plainText
+            heading {
+                heading: "Type"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column CITY (
+            type: plainText
+            heading {
+                heading: "Ville"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ACTIVE (
+            type: plainText
+            heading {
+                heading: "Actif"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+    process set-site-context (
+        name: Set Site Context
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    set_site_ctx_for_user(:APP_USER);
+                END;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
     )
 
 )

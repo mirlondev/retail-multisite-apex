@@ -3,9 +3,17 @@ page 105 (
     alias: HQ-TRANSFERTS
     title: Transferts Inter-Sites
     pageGroup: @hq
-    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
     help {
         helpText:
             ```html
@@ -17,61 +25,252 @@ page 105 (
     region breadcrumb (
         name: Breadcrumb
         type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
     )
 
     region filtres (
         name: Filtres
         type: form
-        source { location: localDatabase; tableName: TES-TRANSFER }
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            location: localDatabase
+            tableName: TES-TRANSFER
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
     )
 
-    pageItem P105_ETAT_FILTER ( type: selectList; label { label: État; alignment: right } layout { sequence: 10; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
-        { returnValue: ALL; displayValue: Tous }
-        { returnValue: EN_COURS; displayValue: En cours (DEMANDE/VALIDE/EN_PREPARATION/EN_TRANSIT) }
-        { returnValue: DEMANDE; displayValue: Demande }
-        { returnValue: EN_TRANSIT; displayValue: En transit }
-        { returnValue: CLOTURE; displayValue: Clos }
-        { returnValue: ANNULE; displayValue: Annulé }
-    ] } default { staticValue: ALL } )
-    pageItem P105_PRIORITY_FILTER ( type: selectList; label { label: Priorité; alignment: right } layout { sequence: 20; region: @filtres; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
-        { returnValue: ALL; displayValue: Toutes }
-        { returnValue: URGENTE; displayValue: Urgente }
-        { returnValue: CRITIQUE; displayValue: Critique }
-        { returnValue: NORMALE; displayValue: Normale }
-    ] } default { staticValue: ALL } )
+    pageItem P105_ETAT_FILTER (
+        type: selectList
+        label {
+        label: État
+        alignment: right
+    } layout {
+        sequence: 10
+        region: @filtres
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 32
+    } lov { staticValues: [
+         {
+            returnValue: ALL
+            displayValue: Tous
+        }
+         {
+            returnValue: EN_COURS
+            displayValue: En cours (DEMANDE/VALIDE/EN_PREPARATION/EN_TRANSIT)
+        }
+         {
+            returnValue: DEMANDE
+            displayValue: Demande
+        }
+         {
+            returnValue: EN_TRANSIT
+            displayValue: En transit
+        }
+         {
+            returnValue: CLOTURE
+            displayValue: Clos
+        }
+         {
+            returnValue: ANNULE
+            displayValue: Annulé
+        }
+    ] } default {
+        staticValue: ALL
+    } )
+    pageItem P105_PRIORITY_FILTER (
+        type: selectList
+        label {
+        label: Priorité
+        alignment: right
+    } layout {
+        sequence: 20
+        region: @filtres
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 32
+    } lov { staticValues: [
+         {
+            returnValue: ALL
+            displayValue: Toutes
+        }
+         {
+            returnValue: URGENTE
+            displayValue: Urgente
+        }
+         {
+            returnValue: CRITIQUE
+            displayValue: Critique
+        }
+         {
+            returnValue: NORMALE
+            displayValue: Normale
+        }
+    ] } default {
+        staticValue: ALL
+    } )
 
-    button apply ( buttonName: APPLY; label: Filtrer; layout { sequence: 100; region: @filtres; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { action: submit } )
+    button apply ( buttonName: APPLY
+        label: Filtrer
+        layout {
+        sequence: 100
+        region: @filtres
+        slot: next
+    } appearance {
+        buttonTemplate: @/text
+        hot: true
+        templateOptions: #DEFAULT#
+    } behavior {
+        action: submit
+    } )
 
     region liste-transferts (
         name: Transferts
         type: interactiveReport
-        source { location: localDatabase; tableName: TES-TRANSFER }
-        layout { sequence: 20; slot: body }
-        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
-        pagination { type: rowRangesXToY }
-        messages { whenNoDataFound: Aucun transfert. }
+        source {
+            location: localDatabase
+            tableName: TES-TRANSFER
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucun transfert.
+        }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column TRANSFER_NUM ( type: plainText; heading { heading: Numéro } layout { sequence: 1 } source { dataType: STRING } )
-        column SITE_SOURCE_ID ( type: plainText; heading { heading: Source } layout { sequence: 2 } source { dataType: STRING } )
-        column SITE_DEST_ID ( type: plainText; heading { heading: Destination } layout { sequence: 3 } source { dataType: STRING } )
-        column ETAT ( type: plainText; heading { heading: État } layout { sequence: 4 } source { dataType: STRING } )
-        column PRIORITY ( type: plainText; heading { heading: Prio } layout { sequence: 5 } source { dataType: STRING } )
-        column DATDEMANDE ( type: plainText; heading { heading: Demandé le } layout { sequence: 6 } source { dataType: DATE } )
-        column DATENVOI_EFFECTIVE ( type: plainText; heading { heading: Expédié } layout { sequence: 7 } source { dataType: DATE } )
-        column DATRECEPT_EFFECTIVE ( type: plainText; heading { heading: Réceptionné } layout { sequence: 8 } source { dataType: DATE } )
-        column CUTI_DEMANDE ( type: plainText; heading { heading: Demandeur } layout { sequence: 9 } source { dataType: STRING } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column TRANSFER_NUM (
+            type: plainText
+            heading {
+            heading: Numéro
+        } layout {
+            sequence: 1
+        } source {
+            dataType: STRING
+        } )
+        column SITE_SOURCE_ID (
+            type: plainText
+            heading {
+            heading: Source
+        } layout {
+            sequence: 2
+        } source {
+            dataType: STRING
+        } )
+        column SITE_DEST_ID (
+            type: plainText
+            heading {
+            heading: Destination
+        } layout {
+            sequence: 3
+        } source {
+            dataType: STRING
+        } )
+        column ETAT (
+            type: plainText
+            heading {
+            heading: État
+        } layout {
+            sequence: 4
+        } source {
+            dataType: STRING
+        } )
+        column PRIORITY (
+            type: plainText
+            heading {
+            heading: Prio
+        } layout {
+            sequence: 5
+        } source {
+            dataType: STRING
+        } )
+        column DATDEMANDE (
+            type: plainText
+            heading {
+            heading: Demandé le
+        } layout {
+            sequence: 6
+        } source {
+            dataType: DATE
+        } )
+        column DATENVOI_EFFECTIVE (
+            type: plainText
+            heading {
+            heading: Expédié
+        } layout {
+            sequence: 7
+        } source {
+            dataType: DATE
+        } )
+        column DATRECEPT_EFFECTIVE (
+            type: plainText
+            heading {
+            heading: Réceptionné
+        } layout {
+            sequence: 8
+        } source {
+            dataType: DATE
+        } )
+        column CUTI_DEMANDE (
+            type: plainText
+            heading {
+            heading: Demandeur
+        } layout {
+            sequence: 9
+        } source {
+            dataType: STRING
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 100 }
-            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
+            view {
+                rowsPerPage: 100
+            }
+            sort ( column: DATDEMANDE; sort {
+                sequence: 1
+                direction: DESC
+            } )
         )
     )
 

@@ -3,9 +3,17 @@ page 201 (
     alias: SM-STOCK-LOCAL
     title: Mon Stock Local
     pageGroup: @supermarche
-    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
     help {
         helpText:
             ```html
@@ -18,17 +26,34 @@ page 201 (
     region breadcrumb (
         name: Breadcrumb
         type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
     )
 
     region kpi-resume (
         name: Résumé du stock
         type: staticContent
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
         source {
             plsqlCode:
                 ```plsql
@@ -64,8 +89,14 @@ page 201 (
     region stock-list (
         name: Stock
         type: interactiveReport
-        source { location: localDatabase; tableName: TES-STOCK-SITE }
-        layout { sequence: 20; slot: body }
+        source {
+            location: localDatabase
+            tableName: TES-STOCK-SITE
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
         appearance {
             template: @/interactive-report
             templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
@@ -74,29 +105,142 @@ page 201 (
             type: itemIsNotNull
             item: P201_FILTER_SITE
         }
-        pagination { type: rowRangesXToY }
+        pagination {
+            type: rowRangesXToY
+        }
         messages {
             whenNoDataFound: Aucun stock. Lancez un inventaire ou demandez un transfert.
         }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column CODART ( type: plainText; heading { heading: Code Article } layout { sequence: 1 } source { dataType: STRING } )
-        column QTEPHYSIQUE ( type: plainText; heading { heading: Phys.; alignment: end } layout { sequence: 2; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTETHEORIQUE ( type: plainText; heading { heading: Théo.; alignment: end } layout { sequence: 3; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTEENTRANSIT ( type: plainText; heading { heading: Transit; alignment: end } layout { sequence: 4; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTECOMMANDE ( type: plainText; heading { heading: Commandé; alignment: end } layout { sequence: 5; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 6; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMAX ( type: plainText; heading { heading: Max; alignment: end } layout { sequence: 7; columnAlignment: end } source { dataType: NUMBER } )
-        column QTESEC ( type: plainText; heading { heading: Sécur.; alignment: end } layout { sequence: 8; columnAlignment: end } source { dataType: NUMBER } )
-        column DERNIER_MVT ( type: plainText; heading { heading: Dernier Mvt } layout { sequence: 9 } source { dataType: DATE } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column CODART (
+            type: plainText
+            heading {
+            heading: Code Article
+        } layout {
+            sequence: 1
+        } source {
+            dataType: STRING
+        } )
+        column QTEPHYSIQUE (
+            type: plainText
+            heading {
+            heading: Phys.
+            alignment: end
+        } layout {
+            sequence: 2
+            columnAlignment: end
+        } appearance {
+            formatMask: 999G990D000
+        } source {
+            dataType: NUMBER
+        } )
+        column QTETHEORIQUE (
+            type: plainText
+            heading {
+            heading: Théo.
+            alignment: end
+        } layout {
+            sequence: 3
+            columnAlignment: end
+        } appearance {
+            formatMask: 999G990D000
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEENTRANSIT (
+            type: plainText
+            heading {
+            heading: Transit
+            alignment: end
+        } layout {
+            sequence: 4
+            columnAlignment: end
+        } appearance {
+            formatMask: 999G990D000
+        } source {
+            dataType: NUMBER
+        } )
+        column QTECOMMANDE (
+            type: plainText
+            heading {
+            heading: Commandé
+            alignment: end
+        } layout {
+            sequence: 5
+            columnAlignment: end
+        } appearance {
+            formatMask: 999G990D000
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMIN (
+            type: plainText
+            heading {
+            heading: Min
+            alignment: end
+        } layout {
+            sequence: 6
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMAX (
+            type: plainText
+            heading {
+            heading: Max
+            alignment: end
+        } layout {
+            sequence: 7
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTESEC (
+            type: plainText
+            heading {
+            heading: Sécur.
+            alignment: end
+        } layout {
+            sequence: 8
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column DERNIER_MVT (
+            type: plainText
+            heading {
+            heading: Dernier Mvt
+        } layout {
+            sequence: 9
+        } source {
+            dataType: DATE
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 50 }
-            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
+            view {
+                rowsPerPage: 50
+            }
+            sort ( column: QTEPHYSIQUE; sort {
+                sequence: 1
+                direction: ASC
+            } )
         )
         )
 
-    pageItem P201_FILTER_SITE ( type: hidden; source { type: expression; plsqlExpression: 'pkg_multisite_core.current_site' } )
+    pageItem P201_FILTER_SITE (
+        type: hidden
+        source {
+        type: expression
+        plsqlExpression: 'pkg_multisite_core.current_site'
+    } )
 
 )

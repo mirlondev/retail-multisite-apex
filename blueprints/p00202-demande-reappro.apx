@@ -7,8 +7,13 @@ page 202 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
     help {
         helpText:
             ```html
@@ -21,17 +26,34 @@ page 202 (
     region breadcrumb (
         name: Breadcrumb
         type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
     )
 
     region info-depot-parent (
         name: Dépôt destinataire
         type: staticContent
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
         source {
             plsqlCode:
                 ```plsql
@@ -60,59 +82,259 @@ page 202 (
     region saisie-transfert (
         name: Sélection Articles
         type: form
-        source { location: localDatabase; tableName: TES-TRANSFER }
-        layout { sequence: 20; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
-        edit { enabled: true; allowedOperations: [ add ] }
+        source {
+            location: localDatabase
+            tableName: TES-TRANSFER
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        edit {
+            enabled: true
+            allowedOperations: [ add ]
+        }
     )
 
-    pageItem P202_ID ( type: hidden; layout { sequence: 10; region: @saisie-transfert; slot: regionBody } source { formRegion: @saisie-transfert; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
-    pageItem P202_PRIORITY ( type: selectList; label { label: Priorité; alignment: right } layout { sequence: 20; region: @saisie-transfert; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
-        { returnValue: NORMALE; displayValue: Normale (5-7 jours) }
-        { returnValue: URGENTE; displayValue: Urgente (24-48h) }
-        { returnValue: CRITIQUE; displayValue: Critique (sous 24h) }
-    ] } source { formRegion: @saisie-transfert; column: PRIORITY; dataType: varchar2 } validation { required: true } )
-    pageItem P202_DATENVOI_SOUHAITEE ( type: datePicker; label { label: Date envoi souhaitée; alignment: right } layout { sequence: 30; region: @saisie-transfert; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @saisie-transfert; column: DATENVOI_SOUHAITEE; dataType: date } )
-    pageItem P202_TRANSPORT_MODE ( type: textField; label { label: Mode transport; alignment: right } layout { sequence: 40; region: @saisie-transfert; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { maxLength: 30 } source { formRegion: @saisie-transfert; column: TRANSPORT_MODE; dataType: varchar2 } )
-    pageItem P202_COMMENTAIRE ( type: textarea; label { label: Motif / commentaire; alignment: right } layout { sequence: 50; region: @saisie-transfert; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60; height: 3 } validation { maxLength: 1000 } source { formRegion: @saisie-transfert; column: COMMENTAIRE_DEMANDE; dataType: varchar2 } )
+    pageItem P202_ID (
+        type: hidden
+        layout {
+        sequence: 10
+        region: @saisie-transfert
+        slot: regionBody
+    } source {
+        formRegion: @saisie-transfert
+        column: ID
+        dataType: number
+        queryOnly: true
+        primaryKey: true
+    } security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    } )
+    pageItem P202_PRIORITY (
+        type: selectList
+        label {
+        label: Priorité
+        alignment: right
+    } layout {
+        sequence: 20
+        region: @saisie-transfert
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 32
+    } lov { staticValues: [
+         {
+            returnValue: NORMALE
+            displayValue: Normale (5-7 jours)
+        }
+         {
+            returnValue: URGENTE
+            displayValue: Urgente (24-48h)
+        }
+         {
+            returnValue: CRITIQUE
+            displayValue: Critique (sous 24h)
+        }
+    ] } source {
+        formRegion: @saisie-transfert
+        column: PRIORITY
+        dataType: varchar2
+    } validation {
+        required: true
+    } )
+    pageItem P202_DATENVOI_SOUHAITEE (
+        type: datePicker
+        label {
+        label: Date envoi souhaitée
+        alignment: right
+    } layout {
+        sequence: 30
+        region: @saisie-transfert
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 32
+    } source {
+        formRegion: @saisie-transfert
+        column: DATENVOI_SOUHAITEE
+        dataType: date
+    } )
+    pageItem P202_TRANSPORT_MODE (
+        type: textField
+        label {
+        label: Mode transport
+        alignment: right
+    } layout {
+        sequence: 40
+        region: @saisie-transfert
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 32
+    } validation {
+        maxLength: 30
+    } source {
+        formRegion: @saisie-transfert
+        column: TRANSPORT_MODE
+        dataType: varchar2
+    } )
+    pageItem P202_COMMENTAIRE (
+        type: textarea
+        label {
+        label: Motif / commentaire
+        alignment: right
+    } layout {
+        sequence: 50
+        region: @saisie-transfert
+        slot: regionBody
+        alignment: left
+    } appearance {
+        template: @/optional-floating
+        templateOptions: #DEFAULT#
+        width: 60
+        height: 3
+    } validation {
+        maxLength: 1000
+    } source {
+        formRegion: @saisie-transfert
+        column: COMMENTAIRE_DEMANDE
+        dataType: varchar2
+    } )
 
     region articles-disponibles (
         name: Articles à demander
         type: interactiveReport
-        source { location: localDatabase; tableName: TES-STOCK-SITE }
-        layout { sequence: 30; slot: body }
-        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ] }
+        source {
+            location: localDatabase
+            tableName: TES-STOCK-SITE
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
         serverSideCondition {
             type: itemIsNotNull
             item: P202_FILTER_SITE
         }
-        pagination { type: rowRangesXToY }
+        pagination {
+            type: rowRangesXToY
+        }
         messages {
             whenNoDataFound: Aucun article. Vérifiez le stock.
         }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column CODART ( type: plainText; heading { heading: Code } layout { sequence: 1 } source { dataType: STRING } )
-        column QTEPHYSIQUE ( type: plainText; heading { heading: Stock Phys.; alignment: end } layout { sequence: 2; columnAlignment: end } source { dataType: NUMBER } )
-        column QTETHEORIQUE ( type: plainText; heading { heading: Théorique; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMAX ( type: plainText; heading { heading: Max; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column CODART (
+            type: plainText
+            heading {
+            heading: Code
+        } layout {
+            sequence: 1
+        } source {
+            dataType: STRING
+        } )
+        column QTEPHYSIQUE (
+            type: plainText
+            heading {
+            heading: Stock Phys.
+            alignment: end
+        } layout {
+            sequence: 2
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTETHEORIQUE (
+            type: plainText
+            heading {
+            heading: Théorique
+            alignment: end
+        } layout {
+            sequence: 3
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMIN (
+            type: plainText
+            heading {
+            heading: Min
+            alignment: end
+        } layout {
+            sequence: 4
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMAX (
+            type: plainText
+            heading {
+            heading: Max
+            alignment: end
+        } layout {
+            sequence: 5
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 50 }
-            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
+            view {
+                rowsPerPage: 50
+            }
+            sort ( column: QTEPHYSIQUE; sort {
+                sequence: 1
+                direction: ASC
+            } )
         )
     )
 
-    pageItem P202_FILTER_SITE ( type: hidden; source { type: expression; plsqlExpression: 'pkg_multisite_core.current_site' } )
+    pageItem P202_FILTER_SITE (
+        type: hidden
+        source {
+        type: expression
+        plsqlExpression: 'pkg_multisite_core.current_site'
+    } )
 
     button submit-transfer (
         buttonName: SUBMIT_TRANSFER
         label: Créer Demande
-        layout { sequence: 100; region: @saisie-transfert; slot: next }
-        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
-        behavior { warnOnUnsavedChanges: doNotCheck }
+        layout {
+            sequence: 100
+            region: @saisie-transfert
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
     )
 
     process submit-transfer (
@@ -152,7 +374,10 @@ page 202 (
                 END;
                 ```
         }
-        execution { sequence: 10; point: afterSubmit }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
     )
 
 )

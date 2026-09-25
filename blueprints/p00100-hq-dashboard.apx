@@ -161,7 +161,9 @@ page 100 (
             linkColumn: customTarget
             target: {
                 page: 105
-                items: { P105_ID: \#ID#\ }
+                items: {
+                    P105_ID: \#ID#\
+                }
                 action: resetPagination
             }
             linkIcon: <span class="fa fa-edit"></span>
@@ -174,19 +176,87 @@ page 100 (
             whenMoreDataFound: Trop de résultats. Affiner le filtre.
         }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column TRANSFER_NUM ( type: plainText; heading { heading: Numéro } layout { sequence: 1 } source { dataType: STRING } )
-        column SITE_SOURCE_ID ( type: plainText; heading { heading: Source } layout { sequence: 2 } source { dataType: STRING } )
-        column SITE_DEST_ID ( type: plainText; heading { heading: Destination } layout { sequence: 3 } source { dataType: STRING } )
-        column ETAT ( type: plainText; heading { heading: État } layout { sequence: 4 } source { dataType: STRING } )
-        column PRIORITY ( type: plainText; heading { heading: Priorité } layout { sequence: 5 } source { dataType: STRING } )
-        column DATDEMANDE ( type: plainText; heading { heading: Demandé le } layout { sequence: 6 } source { dataType: DATE } )
-        column DATENVOI_SOUHAITEE ( type: plainText; heading { heading: Envoi prévu } layout { sequence: 7 } source { dataType: DATE } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column TRANSFER_NUM (
+            type: plainText
+            heading {
+            heading: Numéro
+        } layout {
+            sequence: 1
+        } source {
+            dataType: STRING
+        } )
+        column SITE_SOURCE_ID (
+            type: plainText
+            heading {
+            heading: Source
+        } layout {
+            sequence: 2
+        } source {
+            dataType: STRING
+        } )
+        column SITE_DEST_ID (
+            type: plainText
+            heading {
+            heading: Destination
+        } layout {
+            sequence: 3
+        } source {
+            dataType: STRING
+        } )
+        column ETAT (
+            type: plainText
+            heading {
+            heading: État
+        } layout {
+            sequence: 4
+        } source {
+            dataType: STRING
+        } )
+        column PRIORITY (
+            type: plainText
+            heading {
+            heading: Priorité
+        } layout {
+            sequence: 5
+        } source {
+            dataType: STRING
+        } )
+        column DATDEMANDE (
+            type: plainText
+            heading {
+            heading: Demandé le
+        } layout {
+            sequence: 6
+        } source {
+            dataType: DATE
+        } )
+        column DATENVOI_SOUHAITEE (
+            type: plainText
+            heading {
+            heading: Envoi prévu
+        } layout {
+            sequence: 7
+        } source {
+            dataType: DATE
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 15 }
-            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
+            view {
+                rowsPerPage: 15
+            }
+            sort ( column: DATDEMANDE; sort {
+                sequence: 1
+                direction: DESC
+            } )
         )
     )
 
@@ -212,17 +282,71 @@ page 100 (
             whenNoDataFound: Aucune synchronisation enregistrée.
         }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column SYNC_DATETIME ( type: plainText; heading { heading: Date/Heure } layout { sequence: 1 } source { dataType: DATE } )
-        column SYNC_TYPE ( type: plainText; heading { heading: Type } layout { sequence: 2 } source { dataType: STRING } )
-        column SYNC_STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
-        column RECORDS_PROCESSED ( type: plainText; heading { heading: Lignes; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
-        column ERROR_MESSAGE ( type: plainText; heading { heading: Message } layout { sequence: 5 } source { dataType: STRING } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column SYNC_DATETIME (
+            type: plainText
+            heading {
+            heading: Date/Heure
+        } layout {
+            sequence: 1
+        } source {
+            dataType: DATE
+        } )
+        column SYNC_TYPE (
+            type: plainText
+            heading {
+            heading: Type
+        } layout {
+            sequence: 2
+        } source {
+            dataType: STRING
+        } )
+        column SYNC_STATUS (
+            type: plainText
+            heading {
+            heading: Statut
+        } layout {
+            sequence: 3
+        } source {
+            dataType: STRING
+        } )
+        column RECORDS_PROCESSED (
+            type: plainText
+            heading {
+            heading: Lignes
+            alignment: end
+        } layout {
+            sequence: 4
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column ERROR_MESSAGE (
+            type: plainText
+            heading {
+            heading: Message
+        } layout {
+            sequence: 5
+        } source {
+            dataType: STRING
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 10 }
-            sort ( column: SYNC_DATETIME; sort { sequence: 1; direction: DESC } )
+            view {
+                rowsPerPage: 10
+            }
+            sort ( column: SYNC_DATETIME; sort {
+                sequence: 1
+                direction: DESC
+            } )
         )
     )
 

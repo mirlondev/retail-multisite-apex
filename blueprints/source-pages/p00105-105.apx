@@ -1,6 +1,6 @@
-page 103 (
-    name: Sync Monitor
-    title: Monitoring Synchronisation
+page 105 (
+    name: Transferts Inter-Sites
+    title: Transferts Inter-Sites
     pageGroup: @hq
     appearance {
         pageTemplate: @/standard
@@ -10,11 +10,11 @@ page 103 (
         cursorFocus: doNotFocusCursor
     }
     region data (
-        name: Monitoring Synchronisation
+        name: Transferts Inter-Sites
         type: interactiveReport
         source {
             location: localDatabase
-            tableName: HQ_SYNC_LOG
+            tableName: "TES-TRANSFER"
         }
         layout {
             sequence: 10
@@ -31,10 +31,10 @@ page 103 (
             whenNoDataFound: Aucune donn?e disponible.
         }
 
-        column SYNC_DATETIME (
+        column TRANSFER_NUM (
             type: plainText
             heading {
-                heading: "Date"
+                heading: "Transfert"
             }
             layout {
                 sequence: 10
@@ -43,10 +43,10 @@ page 103 (
                 dataType: STRING
             }
         )
-        column SYNC_TYPE (
+        column SITE_SOURCE_ID (
             type: plainText
             heading {
-                heading: "Type"
+                heading: "Source"
             }
             layout {
                 sequence: 20
@@ -55,10 +55,10 @@ page 103 (
                 dataType: STRING
             }
         )
-        column SYNC_STATUS (
+        column SITE_DEST_ID (
             type: plainText
             heading {
-                heading: "Statut"
+                heading: "Destination"
             }
             layout {
                 sequence: 30
@@ -67,10 +67,10 @@ page 103 (
                 dataType: STRING
             }
         )
-        column RECORDS_PROCESSED (
+        column ETAT (
             type: plainText
             heading {
-                heading: "Trait?s"
+                heading: "?tat"
             }
             layout {
                 sequence: 40
@@ -79,22 +79,17 @@ page 103 (
                 dataType: STRING
             }
         )
+        column PRIORITY (
+            type: plainText
+            heading {
+                heading: "Priorit?"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                BEGIN
-                    set_site_ctx_for_user(:APP_USER);
-                END;
-                ```
-        }
-        execution {
-            sequence: 5
-            point: beforeHeader
-        }
-    )
-
 )

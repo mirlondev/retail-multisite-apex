@@ -1,6 +1,6 @@
-page 103 (
-    name: Sync Monitor
-    title: Monitoring Synchronisation
+page 104 (
+    name: Stock Multi-Sites
+    title: Stock Multi-Sites
     pageGroup: @hq
     appearance {
         pageTemplate: @/standard
@@ -10,11 +10,11 @@ page 103 (
         cursorFocus: doNotFocusCursor
     }
     region data (
-        name: Monitoring Synchronisation
+        name: Stock Multi-Sites
         type: interactiveReport
         source {
             location: localDatabase
-            tableName: HQ_SYNC_LOG
+            tableName: "TES-STOCK-SITE"
         }
         layout {
             sequence: 10
@@ -31,22 +31,22 @@ page 103 (
             whenNoDataFound: Aucune donn?e disponible.
         }
 
-        column SYNC_DATETIME (
+        column SITE_ID (
             type: plainText
             heading {
-                heading: "Date"
+                heading: "Site"
             }
             layout {
                 sequence: 10
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column SYNC_TYPE (
+        column CODART (
             type: plainText
             heading {
-                heading: "Type"
+                heading: "Article"
             }
             layout {
                 sequence: 20
@@ -55,46 +55,41 @@ page 103 (
                 dataType: STRING
             }
         )
-        column SYNC_STATUS (
+        column QTEPHYSIQUE (
             type: plainText
             heading {
-                heading: "Statut"
+                heading: "Stock physique"
             }
             layout {
                 sequence: 30
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column RECORDS_PROCESSED (
+        column QTETHEORIQUE (
             type: plainText
             heading {
-                heading: "Trait?s"
+                heading: "Stock th?orique"
             }
             layout {
                 sequence: 40
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
+            }
+        )
+        column QTEMIN (
+            type: plainText
+            heading {
+                heading: "Minimum"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
             }
         )
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                BEGIN
-                    set_site_ctx_for_user(:APP_USER);
-                END;
-                ```
-        }
-        execution {
-            sequence: 5
-            point: beforeHeader
-        }
-    )
-
 )

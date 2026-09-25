@@ -1,122 +1,100 @@
 page 200 (
     name: SM Dashboard
-    alias: SM-DASHBOARD
     title: Tableau de Bord Magasin
     pageGroup: @supermarche
-    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
-
-    region breadcrumb (
-        name: Breadcrumb
-        type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
-    )
-
-    region kpi-ca-jour (
-        name: CA du jour (site courant)
-        type: staticContent
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
-        source {
-            plsqlCode:
-                ```plsql
-                DECLARE
-                    v_ca_ttc    NUMBER := 0;
-                    v_nb_tickets NUMBER := 0;
-                    v_site_code VARCHAR2(20);
-                BEGIN
-                    v_site_code := SYS_CONTEXT('SITE_CTX','SITE_CODE');
-                    SELECT NVL(SUM(NVL(TOTAL_TTC,0)), 0),
-                           NVL(SUM(NVL(NUMTICKETS,0)), 0)
-                      INTO v_ca_ttc, v_nb_tickets
-                      FROM HQ_VENTES_JOUR
-                     WHERE JOUR = TRUNC(SYSDATE)
-                       AND SITE_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
-                    htp.p('<div class="u-info-grid">');
-                    htp.p('  <div class="kpi"><b>' || v_site_code || '</b><br>votre site</div>');
-                    htp.p('  <div class="kpi"><b>' || TO_CHAR(v_ca_ttc, 'FM999G999D00') || ' €</b><br>CA TTC aujourd''hui</div>');
-                    htp.p('  <div class="kpi"><b>' || v_nb_tickets || '</b><br>tickets</div>');
-                    htp.p('</div>');
-                END;
-                ```
-        }
-    )
-
-    region kpi-stock-local (
-        name: Stock Local
-        type: staticContent
-        layout { sequence: 20; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
-        source {
-            plsqlCode:
-                ```plsql
-                DECLARE
-                    v_total      NUMBER := 0;
-                    v_ruptures   NUMBER := 0;
-                    v_alertes    NUMBER := 0;
-                BEGIN
-                    SELECT COUNT(*),
-                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
-                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) > 0 AND NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 1 ELSE 0 END)
-                      INTO v_total, v_ruptures, v_alertes
-                      FROM "TES-STOCK-SITE"
-                     WHERE SITE_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
-                    htp.p('<div class="u-info-grid">');
-                    htp.p('  <div class="kpi"><b>' || v_total || '</b><br>références</div>');
-                    htp.p('  <div class="kpi" style="color:red"><b>' || v_ruptures || '</b><br>ruptures</div>');
-                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_alertes || '</b><br>alertes</div>');
-                    htp.p('</div>');
-                END;
-                ```
-        }
-    )
-
-    region kpi-transferts (
-        name: Transferts
-        type: staticContent
-        layout { sequence: 30; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
-        source {
-            plsqlCode:
-                ```plsql
-                DECLARE
-                    v_en_attente NUMBER := 0;
-                    v_en_transit NUMBER := 0;
-                    v_recu_7j    NUMBER := 0;
-                BEGIN
-                    SELECT
-                        SUM(CASE WHEN SITE_DEST_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'))
-                                  AND ETAT IN ('DEMANDE','EN_PREPARATION','EN_TRANSIT') THEN 1 ELSE 0 END),
-                        SUM(CASE WHEN SITE_DEST_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'))
-                                  AND ETAT = 'EN_TRANSIT' THEN 1 ELSE 0 END),
-                        SUM(CASE WHEN SITE_DEST_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'))
-                                  AND ETAT = 'RECEPTIONNE'
-                                  AND DATRECEPT_EFFECTIVE >= SYSDATE - 7 THEN 1 ELSE 0 END)
-                      INTO v_en_attente, v_en_transit, v_recu_7j
-                      FROM "TES-TRANSFER";
-                    htp.p('<div class="u-info-grid">');
-                    htp.p('  <div class="kpi"><b>' || v_en_attente || '</b><br>en attente</div>');
-                    htp.p('  <div class="kpi"><b>' || v_en_transit || '</b><br>en transit</div>');
-                    htp.p('  <div class="kpi"><b>' || v_recu_7j || '</b><br>reçus 7j</div>');
-                    htp.p('</div>');
-                END;
-                ```
-        }
-    )
-
-    region navigation-rapide (
-        name: Navigation Rapide
-        type: list
-        source { list: @navigation-menu }
-        layout { sequence: 40; slot: body }
-        appearance {
-            template: @/standard
-            templateOptions: [ #DEFAULT# t-Region--removeHeader js-addHiddenHeadingRoleDesc ]
-        }
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: Tableau de Bord Magasin
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-SITE"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
+
+        column SITE_CODE (
+            type: plainText
+            heading {
+                heading: "Code"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_NAME (
+            type: plainText
+            heading {
+                heading: "Nom"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column SITE_TYPE (
+            type: plainText
+            heading {
+                heading: "Type"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column CITY (
+            type: plainText
+            heading {
+                heading: "Ville"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+    process set-site-context (
+        name: Set Site Context
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    set_site_ctx_for_user(:APP_USER);
+                END;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
 
 )

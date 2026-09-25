@@ -1,96 +1,112 @@
 page 201 (
     name: Stock Local
-    alias: SM-STOCK-LOCAL
-    title: Mon Stock Local
+    title: Stock Local
     pageGroup: @supermarche
-    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
-    help {
-        helpText:
-            ```html
-            <p>Stock de votre site uniquement (filtré par SITE_CTX).</p>
-            <p>Alertes en rouge : stock physique &le; stock minimum.</p>
-            <p>Pour ajuster (inventaire) : aller sur la page "Inventaire" (p206).</p>
-            ```
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
     }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    region data (
+        name: Stock Local
+        type: interactiveReport
+        source {
+            location: localDatabase
+            tableName: "TES-STOCK-SITE"
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: Aucune donn?e disponible.
+        }
 
-    region breadcrumb (
-        name: Breadcrumb
-        type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
-        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+        column SITE_ID (
+            type: plainText
+            heading {
+                heading: "Site"
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column CODART (
+            type: plainText
+            heading {
+                heading: "Article"
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QTEPHYSIQUE (
+            type: plainText
+            heading {
+                heading: "Stock physique"
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column QTEENTRANSIT (
+            type: plainText
+            heading {
+                heading: "En transit"
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
+        column QTECOMMANDE (
+            type: plainText
+            heading {
+                heading: "Command?"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
+            }
+        )
     )
-
-    region kpi-resume (
-        name: Résumé
-        type: staticContent
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+    process set-site-context (
+        name: Set Site Context
+        type: executeCode
         source {
             plsqlCode:
                 ```plsql
-                DECLARE
-                    v_total      NUMBER := 0;
-                    v_rupture    NUMBER := 0;
-                    v_alerte     NUMBER := 0;
-                    v_transit    NUMBER := 0;
-                    v_commande   NUMBER := 0;
                 BEGIN
-                    SELECT COUNT(*),
-                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
-                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) > 0 AND NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 1 ELSE 0 END),
-                           SUM(NVL(QTEENTRANSIT,0)),
-                           SUM(NVL(QTECOMMANDE,0))
-                      INTO v_total, v_rupture, v_alerte, v_transit, v_commande
-                      FROM "TES-STOCK-SITE"
-                     WHERE SITE_ID = TO_NUMBER(SYS_CONTEXT('SITE_CTX','SITE_ID'));
-                    htp.p('<div class="u-info-grid">');
-                    htp.p('  <div class="kpi"><b>' || v_total || '</b><br>références</div>');
-                    htp.p('  <div class="kpi" style="color:red"><b>' || v_rupture || '</b><br>ruptures</div>');
-                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_alerte || '</b><br>alertes</div>');
-                    htp.p('  <div class="kpi"><b>' || v_transit || '</b><br>en transit</div>');
-                    htp.p('  <div class="kpi"><b>' || v_commande || '</b><br>commandés</div>');
-                    htp.p('</div>');
+                    set_site_ctx_for_user(:APP_USER);
                 END;
                 ```
         }
-    )
-
-    region stock-list (
-        name: Stock
-        type: interactiveReport
-        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
-        layout { sequence: 20; slot: body }
-        appearance {
-            template: @/interactive-report
-            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
+        execution {
+            sequence: 5
+            point: beforeHeader
         }
-        serverSideCondition {
-            type: expression
-            plsqlExpression: 'TO_NUMBER(SYS_CONTEXT(''SITE_CTX'',''SITE_ID'')) IS NOT NULL'
-        }
-        pagination { type: rowRangesXToY }
-        messages { whenNoDataFound: Aucun stock. Lancez d'abord _deploy_all.sql. }
-
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column SITE_ID ( type: hidden; layout { sequence: 0 } source { dataType: NUMBER } )
-        column CODART ( type: plainText; heading { heading: "Code Article" } layout { sequence: 1 } source { dataType: STRING } )
-        column QTEPHYSIQUE ( type: plainText; heading { heading: "Phys."; alignment: end } layout { sequence: 2; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTETHEORIQUE ( type: plainText; heading { heading: "Théo."; alignment: end } layout { sequence: 3; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTEENTRANSIT ( type: plainText; heading { heading: "Transit"; alignment: end } layout { sequence: 4; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTECOMMANDE ( type: plainText; heading { heading: "Commandé"; alignment: end } layout { sequence: 5; columnAlignment: end } appearance { formatMask: 999G990D000 } source { dataType: NUMBER } )
-        column QTEMIN ( type: plainText; heading { heading: "Min"; alignment: end } layout { sequence: 6; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMAX ( type: plainText; heading { heading: "Max"; alignment: end } layout { sequence: 7; columnAlignment: end } source { dataType: NUMBER } )
-        column DERNIER_MVT ( type: plainText; heading { heading: "Dernier Mvt" } layout { sequence: 8 } source { dataType: DATE } )
-
-        savedReport primary (
-            visibility: primaryDefault
-            view { rowsPerPage: 50 }
-            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
-        )
     )
 
 )

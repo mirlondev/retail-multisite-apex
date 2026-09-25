@@ -1,6 +1,6 @@
-page 103 (
-    name: Sync Monitor
-    title: Monitoring Synchronisation
+page 106 (
+    name: Ventes Agr?g?es
+    title: Ventes Agr?g?es
     pageGroup: @hq
     appearance {
         pageTemplate: @/standard
@@ -10,11 +10,11 @@ page 103 (
         cursorFocus: doNotFocusCursor
     }
     region data (
-        name: Monitoring Synchronisation
+        name: Ventes Agr?g?es
         type: interactiveReport
         source {
             location: localDatabase
-            tableName: HQ_SYNC_LOG
+            tableName: HQ_VENTES_JOUR
         }
         layout {
             sequence: 10
@@ -31,7 +31,7 @@ page 103 (
             whenNoDataFound: Aucune donn?e disponible.
         }
 
-        column SYNC_DATETIME (
+        column DATE_VENTE (
             type: plainText
             heading {
                 heading: "Date"
@@ -43,58 +43,41 @@ page 103 (
                 dataType: STRING
             }
         )
-        column SYNC_TYPE (
+        column SITE_ID (
             type: plainText
             heading {
-                heading: "Type"
+                heading: "Site"
             }
             layout {
                 sequence: 20
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column SYNC_STATUS (
+        column CA_TTC (
             type: plainText
             heading {
-                heading: "Statut"
+                heading: "CA TTC"
             }
             layout {
                 sequence: 30
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column RECORDS_PROCESSED (
+        column NB_TICKETS (
             type: plainText
             heading {
-                heading: "Trait?s"
+                heading: "Tickets"
             }
             layout {
                 sequence: 40
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                BEGIN
-                    set_site_ctx_for_user(:APP_USER);
-                END;
-                ```
-        }
-        execution {
-            sequence: 5
-            point: beforeHeader
-        }
-    )
-
 )

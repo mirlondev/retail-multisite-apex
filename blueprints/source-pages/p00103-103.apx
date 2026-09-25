@@ -1,0 +1,137 @@
+page 103 (
+    name: Sync Monitor
+    alias: HQ-SYNC-MONITOR
+    title: Monitoring Synchronisation
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region kpi-synchro (
+        name: État Synchronisation (24h)
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_total NUMBER := 0;
+                    v_success NUMBER := 0;
+                    v_failed  NUMBER := 0;
+                    v_last_success TIMESTAMP;
+                    v_last_failed  TIMESTAMP;
+                BEGIN
+                    SELECT COUNT(*),
+                           SUM(CASE WHEN SYNC_STATUS='SUCCESS' THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN SYNC_STATUS='FAILED' THEN 1 ELSE 0 END),
+                           MAX(CASE WHEN SYNC_STATUS='SUCCESS' THEN SYNC_DATETIME END),
+                           MAX(CASE WHEN SYNC_STATUS='FAILED'  THEN SYNC_DATETIME END)
+                      INTO v_total, v_success, v_failed, v_last_success, v_last_failed
+                      FROM HQ_SYNC_LOG
+                     WHERE SYNC_DATETIME >= SYSDATE - 1;
+
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_total || '</b><br>synchros 24h</div>');
+                    htp.p('  <div class="kpi" style="color:green"><b>' || v_success || '</b><br>succès</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_failed || '</b><br>échecs</div>');
+                    htp.p('  <div class="kpi"><b>' || TO_CHAR(v_last_success, 'DD/MM HH24:MI') || '</b><br>dernier OK</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region kpi-jobs (
+        name: Jobs DBMS_SCHEDULER
+        type: staticContent
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_total NUMBER := 0;
+                    v_running NUMBER := 0;
+                    v_failed_24h NUMBER := 0;
+                BEGIN
+                    SELECT COUNT(*) INTO v_total FROM user_scheduler_jobs
+                     WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT');
+                    SELECT COUNT(*) INTO v_running FROM user_scheduler_running_jobs;
+                    SELECT COUNT(*) INTO v_failed_24h FROM user_scheduler_job_run_details
+                     WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT')
+                       AND actual_start_date > SYSDATE - 1
+                       AND status != 'SUCCEEDED';
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_total || '</b><br>jobs configurés</div>');
+                    htp.p('  <div class="kpi"><b>' || v_running || '</b><br>en cours</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_failed_24h || '</b><br>échecs 24h</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region logs (
+        name: Logs HQ_SYNC_LOG (50 derniers)
+        type: interactiveReport
+        source { location: localDatabase; tableName: HQ_SYNC_LOG }
+        layout { sequence: 30; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun log de synchronisation. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SYNC_DATETIME ( type: plainText; heading { heading: Date/Heure } layout { sequence: 1 } source { dataType: DATE } )
+        column SYNC_TYPE ( type: plainText; heading { heading: Type } layout { sequence: 2 } source { dataType: STRING } )
+        column SYNC_STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
+        column RECORDS_PROCESSED ( type: plainText; heading { heading: Traités; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column RECORDS_FAILED ( type: plainText; heading { heading: Échoués; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column ERROR_MESSAGE ( type: plainText; heading { heading: Message } layout { sequence: 6 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: SYNC_DATETIME; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+    region jobs-history (
+        name: Historique Exécution Jobs DBMS_SCHEDULER (24h)
+        type: interactiveReport
+        source {
+            location: localDatabase
+            sqlQuery: SELECT job_name, TO_CHAR(actual_start_date, 'DD/MM HH24:MI:SS') AS started, status, run_duration, error# FROM user_scheduler_job_run_details WHERE job_name IN ('AGG_HQ_VENTES_DAILY','INTEGRATE_TRANSFERT_BUFFER','ALERT_LOW_STOCK','PURGE_OLD_AUDIT') AND actual_start_date > SYSDATE - 1 ORDER BY actual_start_date DESC }
+        layout { sequence: 40; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune exécution sur les 24 dernières heures. }
+
+        column JOB_NAME ( type: plainText; heading { heading: Job } layout { sequence: 1 } source { dataType: STRING } )
+        column STARTED ( type: plainText; heading { heading: Démarré } layout { sequence: 2 } source { dataType: STRING } )
+        column STATUS ( type: plainText; heading { heading: Statut } layout { sequence: 3 } source { dataType: STRING } )
+        column RUN_DURATION ( type: plainText; heading { heading: Durée } layout { sequence: 4 } source { dataType: NUMBER } )
+        column ERROR# ( type: plainText; heading { heading: Err#; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 30 }
+        )
+    )
+
+)

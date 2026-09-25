@@ -1,6 +1,6 @@
-page 103 (
-    name: Sync Monitor
-    title: Monitoring Synchronisation
+page 107 (
+    name: Alertes Stock
+    title: Alertes Stock
     pageGroup: @hq
     appearance {
         pageTemplate: @/standard
@@ -10,11 +10,11 @@ page 103 (
         cursorFocus: doNotFocusCursor
     }
     region data (
-        name: Monitoring Synchronisation
+        name: Alertes Stock
         type: interactiveReport
         source {
             location: localDatabase
-            tableName: HQ_SYNC_LOG
+            tableName: "TES-STOCK-SITE"
         }
         layout {
             sequence: 10
@@ -31,22 +31,22 @@ page 103 (
             whenNoDataFound: Aucune donn?e disponible.
         }
 
-        column SYNC_DATETIME (
+        column SITE_ID (
             type: plainText
             heading {
-                heading: "Date"
+                heading: "Site"
             }
             layout {
                 sequence: 10
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column SYNC_TYPE (
+        column CODART (
             type: plainText
             heading {
-                heading: "Type"
+                heading: "Article"
             }
             layout {
                 sequence: 20
@@ -55,28 +55,40 @@ page 103 (
                 dataType: STRING
             }
         )
-        column SYNC_STATUS (
+        column QTEPHYSIQUE (
             type: plainText
             heading {
-                heading: "Statut"
+                heading: "Stock physique"
             }
             layout {
                 sequence: 30
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
             }
         )
-        column RECORDS_PROCESSED (
+        column QTEMIN (
             type: plainText
             heading {
-                heading: "Trait?s"
+                heading: "Minimum"
             }
             layout {
                 sequence: 40
             }
             source {
-                dataType: STRING
+                dataType: NUMBER
+            }
+        )
+        column QTESEC (
+            type: plainText
+            heading {
+                heading: "S?curit?"
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: NUMBER
             }
         )
     )

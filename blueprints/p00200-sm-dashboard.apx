@@ -7,8 +7,13 @@ page 200 (
         pageTemplate: @/standard
         templateOptions: #DEFAULT#
     }
-    navigation { cursorFocus: doNotFocusCursor }
-    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
     help {
         helpText:
             ```html
@@ -21,20 +26,34 @@ page 200 (
     region breadcrumb (
         name: Breadcrumb
         type: breadcrumb
-        source { breadcrumb: @breadcrumb }
-        layout { sequence: 5; slot: breadcrumbBar }
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
         appearance {
             template: @/title-bar
             templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ]
         }
-        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
     )
 
     region kpi-ca-jour (
         name: CA du jour (site courant)
         type: staticContent
-        layout { sequence: 10; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
         source {
             plsqlCode:
                 ```plsql
@@ -61,8 +80,14 @@ page 200 (
     region kpi-stock-local (
         name: État du stock local
         type: staticContent
-        layout { sequence: 20; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
         source {
             plsqlCode:
                 ```plsql
@@ -91,8 +116,14 @@ page 200 (
     region kpi-transferts-attente (
         name: Transferts en attente
         type: staticContent
-        layout { sequence: 30; slot: body }
-        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
         source {
             plsqlCode:
                 ```plsql
@@ -127,7 +158,10 @@ page 200 (
             location: localDatabase
             tableName: TES-STOCK-SITE
         }
-        layout { sequence: 40; slot: body }
+        layout {
+            sequence: 40
+            slot: body
+        }
         appearance {
             template: @/interactive-report
             templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
@@ -136,29 +170,98 @@ page 200 (
             type: itemIsNotNull
             item: P200_SITE_FILTER
         }
-        pagination { type: rowRangesXToY }
+        pagination {
+            type: rowRangesXToY
+        }
         messages {
             whenNoDataFound: Aucune alerte stock.
         }
 
-        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
-        column CODART ( type: plainText; heading { heading: Code Article } layout { sequence: 1 } source { dataType: STRING } )
-        column QTEPHYSIQUE ( type: plainText; heading { heading: Qté Phys.; alignment: end } layout { sequence: 2; columnAlignment: end } source { dataType: NUMBER } )
-        column QTETHEORIQUE ( type: plainText; heading { heading: Qté Théo.; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMIN ( type: plainText; heading { heading: Min; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
-        column QTEMAX ( type: plainText; heading { heading: Max; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column ID (
+            type: hidden
+            layout {
+            sequence: 0
+        } source {
+            primaryKey: true
+            dataType: NUMBER
+        } )
+        column CODART (
+            type: plainText
+            heading {
+            heading: Code Article
+        } layout {
+            sequence: 1
+        } source {
+            dataType: STRING
+        } )
+        column QTEPHYSIQUE (
+            type: plainText
+            heading {
+            heading: Qté Phys.
+            alignment: end
+        } layout {
+            sequence: 2
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTETHEORIQUE (
+            type: plainText
+            heading {
+            heading: Qté Théo.
+            alignment: end
+        } layout {
+            sequence: 3
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMIN (
+            type: plainText
+            heading {
+            heading: Min
+            alignment: end
+        } layout {
+            sequence: 4
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
+        column QTEMAX (
+            type: plainText
+            heading {
+            heading: Max
+            alignment: end
+        } layout {
+            sequence: 5
+            columnAlignment: end
+        } source {
+            dataType: NUMBER
+        } )
 
         savedReport primary (
             visibility: primaryDefault
-            view { rowsPerPage: 15 }
-            sort ( column: QTEPHYSIQUE; sort { sequence: 1; direction: ASC } )
+            view {
+                rowsPerPage: 15
+            }
+            sort ( column: QTEPHYSIQUE; sort {
+                sequence: 1
+                direction: ASC
+            } )
         )
     )
 
     pageItem P200_SITE_FILTER (
         type: hidden
-        layout { sequence: 0; region: @report-alertes-stock; slot: regionBody }
-        source { type: expression; plsqlExpression: 'pkg_multisite_core.current_site' }
+        layout {
+            sequence: 0
+            region: @report-alertes-stock
+            slot: regionBody
+        }
+        source {
+            type: expression
+            plsqlExpression: 'pkg_multisite_core.current_site'
+        }
     )
 
 )

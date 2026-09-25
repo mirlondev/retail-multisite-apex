@@ -92,4 +92,21 @@ page 104 (
             }
         )
     )
+    process set-site-context (
+        name: Set Site Context
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                BEGIN
+                    set_site_ctx_for_user(:APP_USER);
+                END;
+                ```
+        }
+        execution {
+            sequence: 5
+            point: beforeHeader
+        }
+    )
+
 )

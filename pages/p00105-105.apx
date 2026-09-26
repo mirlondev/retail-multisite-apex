@@ -1,100 +1,84 @@
 page 105 (
     name: Transferts Inter-Sites
+    alias: HQ-TRANSFERTS
     title: Transferts Inter-Sites
     pageGroup: @hq
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Transferts Inter-Sites
-        type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-TRANSFER"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: #DEFAULT#
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
 
-        column TRANSFER_NUM (
-            type: plainText
-            heading {
-                heading: "Transfert"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_SOURCE_ID (
-            type: plainText
-            heading {
-                heading: "Source"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_DEST_ID (
-            type: plainText
-            heading {
-                heading: "Destination"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column ETAT (
-            type: plainText
-            heading {
-                heading: "?tat"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
+
+    region kpi-transferts (
+        name: KPI Transferts
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
             plsqlCode:
                 ```plsql
+                DECLARE
+                    v_demande   NUMBER := 0;
+                    v_transit   NUMBER := 0;
+                    v_recu      NUMBER := 0;
+                    v_annule    NUMBER := 0;
                 BEGIN
-                    set_site_ctx_for_user(:APP_USER);
+                    SELECT SUM(CASE WHEN ETAT='DEMANDE' THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN ETAT='EN_TRANSIT' THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN ETAT='RECEPTIONNE' THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN ETAT='ANNULE' THEN 1 ELSE 0 END)
+                      INTO v_demande, v_transit, v_recu, v_annule
+                      FROM "TES-TRANSFER";
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || NVL(v_demande,0) || '</b><br>en attente</div>');
+                    htp.p('  <div class="kpi"><b>' || NVL(v_transit,0) || '</b><br>en transit</div>');
+                    htp.p('  <div class="kpi"><b>' || NVL(v_recu,0) || '</b><br>réceptionnés</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || NVL(v_annule,0) || '</b><br>annulés</div>');
+                    htp.p('</div>');
                 END;
                 ```
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
+    )
+
+    region transferts-list (
+        name: Tous les Transferts
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 20; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
+        link {
+            linkColumn: customTarget
+            target: { page: 208; items: { P208_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun transfert. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: "Numéro" } layout { sequence: 10 } source { dataType: STRING } )
+        column SITE_SOURCE_ID ( type: plainText; heading { heading: "Source" } layout { sequence: 20 } source { dataType: NUMBER } )
+        column SITE_DEST_ID ( type: plainText; heading { heading: "Destination" } layout { sequence: 30 } source { dataType: NUMBER } )
+        column ETAT ( type: plainText; heading { heading: "État" } layout { sequence: 40 } source { dataType: STRING } )
+        column PRIORITY ( type: plainText; heading { heading: "Prio" } layout { sequence: 50 } source { dataType: STRING } )
+        column DATDEMANDE ( type: plainText; heading { heading: "Demandé" } layout { sequence: 60 } source { dataType: DATE } )
+        column DATENVOI_EFFECTIVE ( type: plainText; heading { heading: "Envoyé" } layout { sequence: 70 } source { dataType: DATE } )
+        column DATRECEPT_EFFECTIVE ( type: plainText; heading { heading: "Reçu" } layout { sequence: 80 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
+        )
     )
 
 )

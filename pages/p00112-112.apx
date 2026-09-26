@@ -1,0 +1,50 @@
+page 112 (
+    name: Utilisateur Form
+    alias: HQ-USER-FORM
+    title: Fiche Utilisateur
+    pageGroup: @hq
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [ #DEFAULT# js-dialog-class-t-Drawer--pullOutEnd ]
+    }
+    dialog { chained: false }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    authorization { scheme: HQ_ADMIN_ONLY }
+
+    region buttons ( name: Buttons; type: staticContent; layout { sequence: 20; slot: dialogFooter } appearance { template: @/buttons-container; templateOptions: #DEFAULT# } )
+
+    region user-form (
+        name: Utilisateur
+        type: form
+        source { location: localDatabase; tableName: "TES-USER" }
+        layout { sequence: 10; slot: contentBody }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ add update delete ] }
+    )
+
+    pageItem P112_ID ( type: hidden; layout { sequence: 10; region: @user-form; slot: regionBody } source { formRegion: @user-form; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P112_USERNAME ( type: textField; label { label: "Identifiant APEX"; alignment: right } layout { sequence: 20; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { maxLength: 100; required: true } source { formRegion: @user-form; column: USERNAME; dataType: varchar2 } )
+    pageItem P112_FULLNAME ( type: textField; label { label: "Nom complet"; alignment: right } layout { sequence: 30; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } validation { maxLength: 200; required: true } source { formRegion: @user-form; column: USER_FULLNAME; dataType: varchar2 } )
+    pageItem P112_EMAIL ( type: textField; label { label: "Email"; alignment: right } layout { sequence: 40; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } validation { maxLength: 200; checkFormat: email } source { formRegion: @user-form; column: EMAIL; dataType: varchar2 } )
+    pageItem P112_SITE_ID ( type: popupKeyLOV; label { label: "Site rattaché"; alignment: right } layout { sequence: 50; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } source { formRegion: @user-form; column: SITE_ID; dataType: number; lov: { query: SELECT ID, SITE_CODE || ' - ' || SITE_NAME FROM "TES-SITE" WHERE ACTIVE='Y' ORDER BY SITE_TYPE, SITE_NAME } } validation { required: true } )
+    pageItem P112_ROLE ( type: selectList; label { label: "Rôle"; alignment: right } layout { sequence: 60; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } lov { staticValues: [
+        { returnValue: HQ_ADMIN; displayValue: HQ Admin (tous droits) }
+        { returnValue: HQ_VIEWER; displayValue: HQ Viewer (lecture seule) }
+        { returnValue: SM_MANAGER; displayValue: Supermarché Manager }
+        { returnValue: SM_USER; displayValue: Supermarché Utilisateur }
+        { returnValue: DEPOT_USER; displayValue: Dépôt Utilisateur }
+    ] } source { formRegion: @user-form; column: USER_ROLE; dataType: varchar2 } validation { required: true } )
+    pageItem P112_ACTIVE ( type: selectList; label { label: "Actif"; alignment: right } layout { sequence: 70; region: @user-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [ { returnValue: Y; displayValue: Oui } { returnValue: N; displayValue: Non } ] } source { formRegion: @user-form; column: ACTIVE; dataType: varchar2 } default { staticValue: Y } )
+
+    button cancel ( buttonName: CANCEL; label: Annuler; layout { sequence: 10; region: @buttons; slot: close } appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# } behavior { action: triggerAction } triggerAction native-dialog-cancel ( action: cancelDialog; execution { sequence: 10 } ) )
+    button create ( buttonName: CREATE; label: Créer; layout { sequence: 40; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: insert } serverSideCondition { type: itemIsNull; item: P112_ID } )
+    button delete ( buttonName: DELETE; label: Supprimer; layout { sequence: 20; region: @buttons; slot: delete } appearance { buttonTemplate: @/text; templateOptions: [ #DEFAULT# t-Button--danger t-Button--simple ] } behavior { executeValidations: false; warnOnUnsavedChanges: doNotCheck; databaseAction: delete; requiresConfirmation: true } confirmation { message: Supprimer cet utilisateur ?; style: danger } serverSideCondition { type: itemIsNotNull; item: P112_ID } )
+    button save ( buttonName: SAVE; label: Enregistrer; layout { sequence: 30; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: update } serverSideCondition { type: itemIsNotNull; item: P112_ID } )
+
+    process close-dialog ( name: Close Dialog; type: closeDialog; execution { sequence: 50 } serverSideCondition { type: requestIsContainedInValue; value: CREATE,SAVE,DELETE } )
+    process initialize-form ( name: Initialize form User; type: formInitialization; formRegion: @user-form; execution { sequence: 10; point: beforeHeader } )
+    process process-form ( name: Process form User; type: formAutoRowProcessing; formRegion: @user-form; execution { sequence: 10 } )
+
+)

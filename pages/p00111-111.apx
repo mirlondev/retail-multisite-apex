@@ -1,0 +1,79 @@
+page 111 (
+    name: Utilisateurs
+    alias: HQ-USERS-LIST
+    title: Gestion Utilisateurs
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    authorization { scheme: HQ_ADMIN_ONLY }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region users-list (
+        name: Utilisateurs
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-USER" }
+        layout { sequence: 10; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        link {
+            linkColumn: customTarget
+            target: { page: 112; items: { P112_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun utilisateur. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column USERNAME ( type: plainText; heading { heading: "Identifiant" } layout { sequence: 10 } source { dataType: STRING } )
+        column USER_FULLNAME ( type: plainText; heading { heading: "Nom complet" } layout { sequence: 20 } source { dataType: STRING } )
+        column EMAIL ( type: plainText; heading { heading: "Email" } layout { sequence: 30 } source { dataType: STRING } )
+        column SITE_ID ( type: plainText; heading { heading: "Site" } layout { sequence: 40 } source { dataType: NUMBER } )
+        column USER_ROLE ( type: plainText; heading { heading: "Rôle" } layout { sequence: 50 } source { dataType: STRING } )
+        column ACTIVE ( type: plainText; heading { heading: "Actif" } layout { sequence: 60 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 25 }
+            sort ( column: USERNAME; sort { sequence: 1 } )
+        )
+    )
+
+    button create-user (
+        buttonName: CREATE
+        label: Nouvel Utilisateur
+        layout {
+            sequence: 10
+            region: @users-list
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior {
+            action: redirectThisApp
+            target: { page: 112; clearCache: 112; items: { P112_ID: null } }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction edit-closed (
+        name: Edit Closed
+        execution { sequence: 10 }
+        when { event: apexafterclosedialog; selectionType: region; region: @users-list }
+        action native-refresh (
+            action: refresh
+            affectedElements { selectionType: region; region: @users-list }
+            execution { sequence: 10; fireOnInit: false }
+        )
+    )
+
+)

@@ -1,112 +1,112 @@
 page 104 (
     name: Stock Multi-Sites
+    alias: HQ-STOCK-MULTISITES
     title: Stock Multi-Sites
     pageGroup: @hq
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Stock Multi-Sites
-        type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-STOCK-SITE"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: #DEFAULT#
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
 
-        column SITE_ID (
-            type: plainText
-            heading {
-                heading: "Site"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column CODART (
-            type: plainText
-            heading {
-                heading: "Article"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column QTEPHYSIQUE (
-            type: plainText
-            heading {
-                heading: "Stock physique"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column QTETHEORIQUE (
-            type: plainText
-            heading {
-                heading: "Stock th?orique"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column QTEMIN (
-            type: plainText
-            heading {
-                heading: "Minimum"
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
+
+    region kpi-stock (
+        name: Résumé Stock Tous Sites
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
             plsqlCode:
                 ```plsql
+                DECLARE
+                    v_refs     NUMBER := 0;
+                    v_qte      NUMBER := 0;
+                    v_ruptures NUMBER := 0;
+                    v_alertes  NUMBER := 0;
                 BEGIN
-                    set_site_ctx_for_user(:APP_USER);
+                    SELECT COUNT(*),
+                           SUM(NVL(QTEPHYSIQUE,0)),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) <= 0 THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN NVL(QTEPHYSIQUE,0) > 0 AND NVL(QTEPHYSIQUE,0) <= NVL(QTEMIN, NVL(QTESEC,0)) THEN 1 ELSE 0 END)
+                      INTO v_refs, v_qte, v_ruptures, v_alertes
+                      FROM "TES-STOCK-SITE";
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi"><b>' || v_refs || '</b><br>références</div>');
+                    htp.p('  <div class="kpi"><b>' || v_qte || '</b><br>unités totales</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || v_ruptures || '</b><br>ruptures</div>');
+                    htp.p('  <div class="kpi" style="color:orange"><b>' || v_alertes || '</b><br>alertes min</div>');
+                    htp.p('</div>');
                 END;
                 ```
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
+    )
+
+    region stock-list (
+        name: Stock par Site
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 20; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader js-addHiddenHeadingRoleDesc ]
         }
+        link {
+            linkColumn: customTarget
+            target: { page: 207; items: { P207_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun stock. Lancez _deploy_all.sql }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_ID ( type: plainText; heading { heading: "Site" } layout { sequence: 1 } source { dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: "Article" } layout { sequence: 2 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: "Phys."; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: "Théo."; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEENTRANSIT ( type: plainText; heading { heading: "Transit"; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMIN ( type: plainText; heading { heading: "Min"; alignment: end } layout { sequence: 6; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEMAX ( type: plainText; heading { heading: "Max"; alignment: end } layout { sequence: 7; columnAlignment: end } source { dataType: NUMBER } )
+        column QTESEC ( type: plainText; heading { heading: "Sécur."; alignment: end } layout { sequence: 8; columnAlignment: end } source { dataType: NUMBER } }
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: SITE_ID; sort { sequence: 1 } )
+            sort ( column: CODART; sort { sequence: 2 } )
+        )
+    )
+
+    button create-stock (
+        buttonName: CREATE
+        label: Nouvelle Référence Stock
+        layout {
+            sequence: 10
+            region: @stock-list
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior {
+            action: redirectThisApp
+            target: { page: 207; clearCache: 207; items: { P207_ID: null } }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction edit-closed (
+        name: Edit Closed
+        execution { sequence: 10 }
+        when { event: apexafterclosedialog; selectionType: region; region: @stock-list }
+        action native-refresh (
+            action: refresh
+            affectedElements { selectionType: region; region: @stock-list }
+            execution { sequence: 10; fireOnInit: false }
+        )
     )
 
 )

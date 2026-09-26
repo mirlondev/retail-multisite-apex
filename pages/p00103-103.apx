@@ -1,100 +1,122 @@
 page 103 (
     name: Sync Monitor
+    alias: HQ-SYNC-MONITOR
     title: Monitoring Synchronisation
     pageGroup: @hq
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Monitoring Synchronisation
-        type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: HQ_SYNC_LOG
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: #DEFAULT#
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
 
-        column SYNC_DATETIME (
-            type: plainText
-            heading {
-                heading: "Date"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SYNC_TYPE (
-            type: plainText
-            heading {
-                heading: "Type"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SYNC_STATUS (
-            type: plainText
-            heading {
-                heading: "Statut"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column RECORDS_PROCESSED (
-            type: plainText
-            heading {
-                heading: "Trait?s"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
+
+    region kpi-sync (
+        name: KPIs Sync
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_ok    NUMBER := 0;
+                    v_err   NUMBER := 0;
+                    v_last  DATE;
+                BEGIN
+                    SELECT SUM(CASE WHEN STATUS='OK' THEN 1 ELSE 0 END),
+                           SUM(CASE WHEN STATUS='ERROR' THEN 1 ELSE 0 END),
+                           MAX(SYNC_DATETIME)
+                      INTO v_ok, v_err, v_last
+                      FROM HQ_SYNC_LOG
+                     WHERE SYNC_DATETIME >= SYSDATE - 7;
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('  <div class="kpi" style="color:green"><b>' || NVL(v_ok,0) || '</b><br>succès 7j</div>');
+                    htp.p('  <div class="kpi" style="color:red"><b>' || NVL(v_err,0) || '</b><br>erreurs 7j</div>');
+                    htp.p('  <div class="kpi"><b>' || TO_CHAR(v_last, 'DD/MM HH24:MI') || '</b><br>dernier sync</div>');
+                    htp.p('</div>');
+                END;
+                ```
+        }
+    )
+
+    region sync-actions (
+        name: Actions
+        type: staticContent
+        layout { sequence: 15; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
             plsqlCode:
                 ```plsql
                 BEGIN
-                    set_site_ctx_for_user(:APP_USER);
+                    htp.p('<div style="margin:1rem 0;display:flex;gap:0.5rem">');
+                    htp.p('<a href="#" class="t-Button t-Button--hot" data-action="run-sync"><span class="fa fa-play"></span> Lancer Sync Manuelle</a>');
+                    htp.p('</div>');
                 END;
                 ```
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
+    )
+
+    region sync-log (
+        name: Historique Sync
+        type: interactiveReport
+        source { location: localDatabase; tableName: HQ_SYNC_LOG }
+        layout { sequence: 20; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun log de synchronisation. }
+
+        column SYNC_DATETIME ( type: plainText; heading { heading: "Date" } layout { sequence: 10 } source { dataType: STRING } )
+        column SYNC_TYPE ( type: plainText; heading { heading: "Type" } layout { sequence: 20 } source { dataType: STRING } )
+        column SITE_CODE ( type: plainText; heading { heading: "Site" } layout { sequence: 30 } source { dataType: STRING } )
+        column STATUS ( type: plainText; heading { heading: "Statut" } layout { sequence: 40 } source { dataType: STRING } )
+        column RECORDS_COUNT ( type: plainText; heading { heading: "Enreg."; alignment: end } layout { sequence: 50; columnAlignment: end } source { dataType: NUMBER } )
+        column DURATION_MS ( type: plainText; heading { heading: "Durée (ms)"; alignment: end } layout { sequence: 60; columnAlignment: end } source { dataType: NUMBER } )
+        column ERROR_MSG ( type: plainText; heading { heading: "Erreur" } layout { sequence: 70 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: SYNC_DATETIME; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+    process run-sync (
+        name: Run Manual Sync
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                DECLARE
+                    v_status VARCHAR2(20);
+                    v_msg    VARCHAR2(1000);
+                BEGIN
+                    BEGIN
+                        DBMS_SCHEDULER.RUN_JOB('ERP_APP.JOB_SYNC_ALL_SITES', useCurrentSession => FALSE);
+                        v_status := 'OK';
+                        v_msg := 'Job JOB_SYNC_ALL_SITES lancé.';
+                    EXCEPTION
+                        WHEN OTHERS THEN
+                            v_status := 'ERROR';
+                            v_msg := SQLERRM;
+                    END;
+                    INSERT INTO HQ_SYNC_LOG (SYNC_DATETIME, SYNC_TYPE, STATUS, RECORDS_COUNT, ERROR_MSG, DURATION_MS)
+                    VALUES (SYSDATE, 'MANUAL_RUN', v_status, 0, v_msg, 0);
+                    COMMIT;
+                    htp.p('<div class="u-success">Sync manuelle lancée : ' || v_msg || '</div>');
+                END;
+                ```
+        }
+        execution { sequence: 10; point: afterSubmit }
+        serverSideCondition { type: requestIsContainedInValue; value: RUN_SYNC }
     )
 
 )

@@ -1,112 +1,102 @@
 page 204 (
-    name: R?ception Transfert
-    title: R?ceptionner un Transfert
+    name: Réception Transfert
+    alias: SM-RECEPTION-TRANSFERT
+    title: Réceptionner un Transfert
     pageGroup: @supermarche
     appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [ #DEFAULT# js-dialog-class-t-Drawer--pullOutEnd ]
     }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: R?ceptionner un Transfert
-        type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-TRANSFER-RECEPTION"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: #DEFAULT#
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+    dialog { chained: false }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
 
-        column TRANSFER_ID (
-            type: plainText
-            heading {
-                heading: "Transfert"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column RECEPTIONNE_PAR (
-            type: plainText
-            heading {
-                heading: "R?ceptionn? par"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column NB_COLIS_ATTENDUS (
-            type: plainText
-            heading {
-                heading: "Colis attendus"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column NB_COLIS_RECUS (
-            type: plainText
-            heading {
-                heading: "Colis re?us"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column ETAT_RECEPTION (
-            type: plainText
-            heading {
-                heading: "?tat"
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
-        )
-    )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
+    region info-transfert (
+        name: Informations Transfert
+        type: staticContent
+        layout { sequence: 10; slot: contentBody }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
             plsqlCode:
                 ```plsql
+                DECLARE
+                    v_transfert_num VARCHAR2(20);
+                    v_site_src      VARCHAR2(20);
+                    v_site_dst      VARCHAR2(20);
+                    v_etat          VARCHAR2(30);
+                    v_nb_lignes     NUMBER;
+                    v_total_qte     NUMBER;
                 BEGIN
-                    set_site_ctx_for_user(:APP_USER);
+                    SELECT t.TRANSFER_NUM, src.SITE_CODE, dst.SITE_CODE, t.ETAT,
+                           (SELECT COUNT(*) FROM "TES-TRANSFER-LINE" WHERE TRANSFER_ID=t.ID),
+                           (SELECT NVL(SUM(QTEDEMANDEE),0) FROM "TES-TRANSFER-LINE" WHERE TRANSFER_ID=t.ID)
+                      INTO v_transfert_num, v_site_src, v_site_dst, v_etat, v_nb_lignes, v_total_qte
+                      FROM "TES-TRANSFER" t
+                      JOIN "TES-SITE" src ON src.ID = t.SITE_SOURCE_ID
+                      JOIN "TES-SITE" dst ON dst.ID = t.SITE_DEST_ID
+                     WHERE t.ID = :P204_TRANSFER_ID;
+                    htp.p('<div class="u-info-grid">');
+                    htp.p('<div><b>Transfert :</b> ' || v_transfert_num || '</div>');
+                    htp.p('<div><b>De :</b> ' || v_site_src || ' <b>vers</b> ' || v_site_dst || '</div>');
+                    htp.p('<div><b>État :</b> ' || v_etat || '</div>');
+                    htp.p('<div><b>Lignes :</b> ' || v_nb_lignes || ' — Qté totale : ' || v_total_qte || '</div>');
+                    htp.p('</div>');
+                EXCEPTION
+                    WHEN NO_DATA_FOUND THEN
+                        htp.p('<div class="u-error">Transfert introuvable.</div>');
                 END;
                 ```
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
-        }
     )
+
+    region lignes-transfert (
+        name: Lignes du Transfert
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-TRANSFER-LINE" }
+        layout { sequence: 20; slot: contentBody }
+        appearance { template: @/interactive-report; templateOptions: [ #DEFAULT# t-IRR-region--scrollBody ] }
+        pagination { type: noPagination }
+        messages { whenNoDataFound: Aucune ligne. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column NUMLIG ( type: plainText; heading { heading: "Lig" } layout { sequence: 1 } source { dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: "Code Article" } layout { sequence: 2 } source { dataType: STRING } )
+        column QTEDEMANDEE ( type: plainText; heading { heading: "Demandé"; alignment: end } layout { sequence: 3; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEPREPAREE ( type: plainText; heading { heading: "Préparé"; alignment: end } layout { sequence: 4; columnAlignment: end } source { dataType: NUMBER } )
+        column QTEEXPEDIEE ( type: plainText; heading { heading: "Expédié"; alignment: end } layout { sequence: 5; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary ( visibility: primaryDefault; view { rowsPerPage: 999 } )
+    )
+
+    region reception-form (
+        name: Saisie Réception
+        type: form
+        source { location: localDatabase; tableName: "TES-TRANSFER-RECEPTION" }
+        layout { sequence: 30; slot: contentBody }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ add ] }
+    )
+
+    pageItem P204_TRANSFER_ID ( type: hidden; layout { sequence: 10; region: @reception-form; slot: regionBody } source { formRegion: @reception-form; column: TRANSFER_ID; dataType: number } )
+    pageItem P204_RECEPTIONNE_PAR ( type: textField; label { label: "Réceptionné par"; alignment: right } layout { sequence: 20; region: @reception-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } validation { maxLength: 200; required: true } source { formRegion: @reception-form; column: RECEPTIONNE_PAR; dataType: varchar2 } default { plsqlExpression: USER } )
+    pageItem P204_COLIS_ATTENDUS ( type: numberField; label { label: "Colis attendus"; alignment: right } layout { sequence: 30; region: @reception-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @reception-form; column: NB_COLIS_ATTENDUS; dataType: number } default { staticValue: "1" } )
+    pageItem P204_COLIS_RECUS ( type: numberField; label { label: "Colis effectivement reçus"; alignment: right } layout { sequence: 40; region: @reception-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @reception-form; column: NB_COLIS_RECUS; dataType: number } default { staticValue: "1" } )
+    pageItem P204_ETAT_RECEPTION ( type: radioGroup; label { label: "État de la réception"; alignment: right } layout { sequence: 50; region: @reception-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } lov { staticValues: [
+        { returnValue: CONFORME; displayValue: Conforme - tout est OK }
+        { returnValue: PARTIELLE; displayValue: Partielle - écart de quantité }
+        { returnValue: NON_CONFORME; displayValue: Non conforme - produits manquants ou erronés }
+        { returnValue: ENDOMMAGE; displayValue: Endommagé - casse pendant transport }
+    ] } source { formRegion: @reception-form; column: ETAT_RECEPTION; dataType: varchar2 } validation { required: true } default { staticValue: CONFORME } )
+    pageItem P204_COMMENTAIRE ( type: textarea; label { label: "Commentaire"; alignment: right } layout { sequence: 60; region: @reception-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60; height: 4 } validation { maxLength: 1000 } source { formRegion: @reception-form; column: COMMENTAIRE; dataType: varchar2 } )
+
+    region buttons ( name: Buttons; type: staticContent; layout { sequence: 90; slot: dialogFooter } appearance { template: @/buttons-container; templateOptions: #DEFAULT# } )
+
+    button cancel ( buttonName: CANCEL; label: Annuler; layout { sequence: 10; region: @buttons; slot: close } appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# } behavior { action: triggerAction } triggerAction native-dialog-cancel ( action: cancelDialog; execution { sequence: 10 } ) )
+    button confirm ( buttonName: CONFIRM; label: Valider Réception; layout { sequence: 20; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: insert } )
+
+    process initialize-form ( name: Initialize form Réception; type: formInitialization; formRegion: @reception-form; execution { sequence: 5; point: beforeHeader } )
+    process confirm-reception ( name: Confirm Reception; type: executeCode; source { plsqlCode: ```plsql DECLARE v_etat VARCHAR2(30) := :P204_ETAT_RECEPTION; BEGIN -- Insertion réception INSERT INTO "TES-TRANSFER-RECEPTION" (TRANSFER_ID, DATRECEPTION, RECEPTIONNE_PAR, ETAT_RECEPTION, NB_COLIS_ATTENDUS, NB_COLIS_RECUS, COMMENTAIRE) VALUES (:P204_TRANSFER_ID, SYSDATE, :P204_RECEPTIONNE_PAR, v_etat, :P204_COLIS_ATTENDUS, :P204_COLIS_RECUS, :P204_COMMENTAIRE); -- Mise à jour transfert UPDATE "TES-TRANSFER" SET ETAT = CASE v_etat WHEN 'CONFORME' THEN 'CLOTURE' ELSE 'RECEPTIONNE' END, DATRECEPT_EFFECTIVE = SYSDATE, DATMOD = SYSDATE WHERE ID = :P204_TRANSFER_ID; -- Créditer stock destination FOR r IN (SELECT CODART, QTEDEMANDEE FROM "TES-TRANSFER-LINE" WHERE TRANSFER_ID = :P204_TRANSFER_ID) LOOP MERGE INTO "TES-STOCK-SITE" t USING (SELECT CODART, QTEDEMANDEE FROM DUAL) s ON (t.SITE_ID = (SELECT SITE_DEST_ID FROM "TES-TRANSFER" WHERE ID=:P204_TRANSFER_ID) AND t.CODART = s.CODART) WHEN MATCHED THEN UPDATE SET QTETHEORIQUE = t.QTETHEORIQUE + s.QTEDEMANDEE, DERNIER_MVT = SYSDATE, DATMOD = SYSDATE WHEN NOT MATCHED THEN INSERT (SITE_ID, CODART, QTETHEORIQUE, DERNIER_MVT) VALUES ((SELECT SITE_DEST_ID FROM "TES-TRANSFER" WHERE ID=:P204_TRANSFER_ID), s.CODART, s.QTEDEMANDEE, SYSDATE); END LOOP; -- Audit INSERT INTO "TES-SITE-AUDIT" (SITE_ID, AUDIT_TYPE, ENTITY_TABLE, ENTITY_ID, ACTION, USER_NAME, DETAILS) VALUES ((SELECT SITE_DEST_ID FROM "TES-TRANSFER" WHERE ID=:P204_TRANSFER_ID), 'TRANSFER_RECEIVED', 'TES-TRANSFER', :P204_TRANSFER_ID, 'UPDATE', :P204_RECEPTIONNE_PAR, 'État: ' || v_etat || ' - ' || :P204_COMMENTAIRE); COMMIT; EXCEPTION WHEN OTHERS THEN ROLLBACK; RAISE_APPLICATION_ERROR(-20401, 'Erreur réception: ' || SQLERRM); END; ``` }; execution { sequence: 10 } serverSideCondition { type: requestIsContainedInValue; value: CONFIRM } )
+    process close-dialog ( name: Close Dialog; type: closeDialog; execution { sequence: 99 } serverSideCondition { type: requestIsContainedInValue; value: CONFIRM } )
 
 )

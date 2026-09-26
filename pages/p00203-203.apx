@@ -1,112 +1,106 @@
 page 203 (
     name: Transferts en Cours
-    title: Transferts en Cours
+    alias: SM-TRANSFERTS-EN-COURS
+    title: Mes Transferts en Cours
     pageGroup: @supermarche
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Transferts en Cours
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region transferts-recus (
+        name: Transferts à Réceptionner
         type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-TRANSFER"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 10; slot: body }
         appearance {
             template: @/interactive-report
-            templateOptions: #DEFAULT#
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
-        pagination {
-            type: rowRangesXToY
+        link {
+            linkColumn: customTarget
+            target: { page: 204; items: { P204_TRANSFER_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Reception" class="fa fa-truck"></span>
         }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun transfert à réceptionner. }
 
-        column TRANSFER_NUM (
-            type: plainText
-            heading {
-                heading: "Transfert"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_SOURCE_ID (
-            type: plainText
-            heading {
-                heading: "Source"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_DEST_ID (
-            type: plainText
-            heading {
-                heading: "Destination"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column ETAT (
-            type: plainText
-            heading {
-                heading: "?tat"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column DATE_CREATION (
-            type: plainText
-            heading {
-                heading: "Cr?? le"
-            }
-            layout {
-                sequence: 50
-            }
-            source {
-                dataType: STRING
-            }
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: "Numéro" } layout { sequence: 1 } source { dataType: STRING } )
+        column SITE_SOURCE_ID ( type: plainText; heading { heading: "Expéditeur" } layout { sequence: 2 } source { dataType: NUMBER } )
+        column PRIORITY ( type: plainText; heading { heading: "Prio" } layout { sequence: 3 } source { dataType: STRING } )
+        column DATENVOI_EFFECTIVE ( type: plainText; heading { heading: "Expédié le" } layout { sequence: 5 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 25 }
+            sort ( column: DATENVOI_EFFECTIVE; sort { sequence: 1; direction: DESC } )
         )
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                BEGIN
-                    set_site_ctx_for_user(:APP_USER);
-                END;
-                ```
+
+    region transferts-envoyes (
+        name: Transferts Envoyés (à préparer)
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 20; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
+        link {
+            linkColumn: customTarget
+            target: { page: 208; items: { P208_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
         }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun transfert en attente côté envoi. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: "Numéro" } layout { sequence: 1 } source { dataType: STRING } )
+        column SITE_DEST_ID ( type: plainText; heading { heading: "Destinataire" } layout { sequence: 2 } source { dataType: NUMBER } )
+        column ETAT ( type: plainText; heading { heading: "État" } layout { sequence: 3 } source { dataType: STRING } )
+        column PRIORITY ( type: plainText; heading { heading: "Prio" } layout { sequence: 4 } source { dataType: STRING } )
+        column DATDEMANDE ( type: plainText; heading { heading: "Demandé le" } layout { sequence: 5 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 25 }
+            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
+        )
+    )
+
+    region historique (
+        name: Historique Récent (7 derniers jours)
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 30; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun transfert récent. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: "Numéro" } layout { sequence: 1 } source { dataType: STRING } )
+        column SITE_SOURCE_ID ( type: plainText; heading { heading: "Src" } layout { sequence: 2 } source { dataType: NUMBER } )
+        column SITE_DEST_ID ( type: plainText; heading { heading: "Dst" } layout { sequence: 3 } source { dataType: NUMBER } )
+        column ETAT ( type: plainText; heading { heading: "État" } layout { sequence: 4 } source { dataType: STRING } )
+        column DATRECEPT_EFFECTIVE ( type: plainText; heading { heading: "Réceptionné le" } layout { sequence: 5 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 15 }
+            sort ( column: DATRECEPT_EFFECTIVE; sort { sequence: 1; direction: DESC } )
+        )
     )
 
 )

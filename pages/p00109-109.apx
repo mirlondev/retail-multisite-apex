@@ -1,0 +1,79 @@
+page 109 (
+    name: Magasins & Dépôts
+    alias: HQ-MAGASINS-LIST
+    title: Magasins & Dépôts
+    pageGroup: @hq
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+    authorization { scheme: HQ_ADMIN_ONLY }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region magasins-list (
+        name: Magasins & Dépôts
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-MAGASIN" }
+        layout { sequence: 10; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
+        }
+        link {
+            linkColumn: customTarget
+            target: { page: 110; items: { P110_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun magasin configuré. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column SITE_ID ( type: plainText; heading { heading: "Site parent" } layout { sequence: 10 } source { dataType: NUMBER } )
+        column MAG_CODE ( type: plainText; heading { heading: "Code" } layout { sequence: 20 } source { dataType: STRING } )
+        column MAG_NAME ( type: plainText; heading { heading: "Nom" } layout { sequence: 30 } source { dataType: STRING } )
+        column MAG_TYPE ( type: plainText; heading { heading: "Type" } layout { sequence: 40 } source { dataType: STRING } )
+        column SURFACE_M2 ( type: plainText; heading { heading: "Surface (m²)"; alignment: end } layout { sequence: 50; columnAlignment: end } source { dataType: NUMBER } )
+        column ACTIVE ( type: plainText; heading { heading: "Actif" } layout { sequence: 60 } source { dataType: STRING } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 25 }
+            sort ( column: MAG_TYPE; sort { sequence: 1 } )
+        )
+    )
+
+    button create-magasin (
+        buttonName: CREATE
+        label: Nouveau Magasin/Dépôt
+        layout {
+            sequence: 10
+            region: @magasins-list
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# }
+        behavior {
+            action: redirectThisApp
+            target: { page: 110; clearCache: 110; items: { P110_ID: null } }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction edit-closed (
+        name: Edit Closed
+        execution { sequence: 10 }
+        when { event: apexafterclosedialog; selectionType: region; region: @magasins-list }
+        action native-refresh (
+            action: refresh
+            affectedElements { selectionType: region; region: @magasins-list }
+            execution { sequence: 10; fireOnInit: false }
+        )
+    )
+
+)

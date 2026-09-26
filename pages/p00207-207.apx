@@ -1,0 +1,45 @@
+page 207 (
+    name: Stock Form
+    alias: STOCK-FORM
+    title: Fiche Stock Article/Site
+    pageGroup: @hq
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [ #DEFAULT# js-dialog-class-t-Drawer--pullOutEnd ]
+    }
+    dialog { chained: false }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+
+    region buttons ( name: Buttons; type: staticContent; layout { sequence: 20; slot: dialogFooter } appearance { template: @/buttons-container; templateOptions: #DEFAULT# } )
+
+    region stock-form (
+        name: Stock
+        type: form
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 10; slot: contentBody }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ add update delete ] }
+    )
+
+    pageItem P207_ID ( type: hidden; layout { sequence: 10; region: @stock-form; slot: regionBody } source { formRegion: @stock-form; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P207_SITE_ID ( type: popupKeyLOV; label { label: "Site"; alignment: right } layout { sequence: 20; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } source { formRegion: @stock-form; column: SITE_ID; dataType: number; lov: { query: SELECT ID, SITE_CODE || ' - ' || SITE_NAME FROM "TES-SITE" WHERE ACTIVE='Y' ORDER BY SITE_TYPE, SITE_NAME } } validation { required: true } )
+    pageItem P207_CODART ( type: textField; label { label: "Code Article"; alignment: right } layout { sequence: 30; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { maxLength: 50; required: true } source { formRegion: @stock-form; column: CODART; dataType: varchar2 } )
+    pageItem P207_QTEPHYSIQUE ( type: numberField; label { label: "Qté Physique"; alignment: right } layout { sequence: 40; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @stock-form; column: QTEPHYSIQUE; dataType: number } default { staticValue: "0" } )
+    pageItem P207_QTETHEORIQUE ( type: numberField; label { label: "Qté Théorique"; alignment: right } layout { sequence: 50; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @stock-form; column: QTETHEORIQUE; dataType: number } default { staticValue: "0" } )
+    pageItem P207_QTEENTRANSIT ( type: numberField; label { label: "Qté en Transit"; alignment: right } layout { sequence: 60; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @stock-form; column: QTEENTRANSIT; dataType: number } default { staticValue: "0" } )
+    pageItem P207_QTEMIN ( type: numberField; label { label: "Qté Min (alerte)"; alignment: right } layout { sequence: 70; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @stock-form; column: QTEMIN; dataType: number } )
+    pageItem P207_QTEMAX ( type: numberField; label { label: "Qté Max (capacité)"; alignment: right } layout { sequence: 80; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @stock-form; column: QTEMAX; dataType: number } )
+    pageItem P207_QTESEC ( type: numberField; label { label: "Qté Sécurité"; alignment: right } layout { sequence: 90; region: @stock-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @stock-form; column: QTESEC; dataType: number } )
+
+    button cancel ( buttonName: CANCEL; label: Annuler; layout { sequence: 10; region: @buttons; slot: close } appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# } behavior { action: triggerAction } triggerAction native-dialog-cancel ( action: cancelDialog; execution { sequence: 10 } ) )
+    button create ( buttonName: CREATE; label: Créer; layout { sequence: 40; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: insert } serverSideCondition { type: itemIsNull; item: P207_ID } )
+    button delete ( buttonName: DELETE; label: Supprimer; layout { sequence: 20; region: @buttons; slot: delete } appearance { buttonTemplate: @/text; templateOptions: [ #DEFAULT# t-Button--danger t-Button--simple ] } behavior { executeValidations: false; warnOnUnsavedChanges: doNotCheck; databaseAction: delete; requiresConfirmation: true } confirmation { message: Supprimer définitivement cette référence ?; style: danger } serverSideCondition { type: itemIsNotNull; item: P207_ID } )
+    button save ( buttonName: SAVE; label: Enregistrer; layout { sequence: 30; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: update } serverSideCondition { type: itemIsNotNull; item: P207_ID } )
+
+    process close-dialog ( name: Close Dialog; type: closeDialog; execution { sequence: 50 } serverSideCondition { type: requestIsContainedInValue; value: CREATE,SAVE,DELETE } )
+    process initialize-form ( name: Initialize form Stock; type: formInitialization; formRegion: @stock-form; execution { sequence: 10; point: beforeHeader } )
+    process process-form ( name: Process form Stock; type: formAutoRowProcessing; formRegion: @stock-form; execution { sequence: 10 } )
+
+)

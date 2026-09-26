@@ -1,100 +1,77 @@
 page 202 (
-    name: Demande R?appro
-    title: Demande R?approvisionnement
+    name: Demande Réappro
+    alias: SM-DEMANDE-REAPPRO
+    title: Demande de Réapprovisionnement
     pageGroup: @supermarche
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Demande R?approvisionnement
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
+    )
+
+    region form-region (
+        name: Nouvelle Demande
+        type: form
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ add ] }
+    )
+
+    pageItem P202_TRANSFER_NUM ( type: textField; label { label: "Numéro (auto)"; alignment: right } layout { sequence: 10; region: @form-region; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { maxLength: 20 } source { formRegion: @form-region; column: TRANSFER_NUM; dataType: varchar2 } default { plsqlExpression: 'TRF' || TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS') } )
+    pageItem P202_SITE_SOURCE_ID ( type: hidden; layout { sequence: 20; region: @form-region; slot: regionBody } source { formRegion: @form-region; column: SITE_SOURCE_ID; dataType: number; queryOnly: true } default { plsqlExpression: SITE_CTX } )
+    pageItem P202_SITE_DEST_ID ( type: popupKeyLOV; label { label: "Demander à"; alignment: right } layout { sequence: 30; region: @form-region; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } source { formRegion: @form-region; column: SITE_DEST_ID; dataType: number; lov: { query: SELECT s.ID, s.SITE_CODE || ' - ' || s.SITE_NAME FROM "TES-SITE" s WHERE s.ACTIVE='Y' AND s.SITE_TYPE IN ('DEPOT_PRINCIPAL','DEPOT_SM','HEAD_OFFICE') ORDER BY s.SITE_TYPE, s.SITE_NAME } } validation { required: true } )
+    pageItem P202_PRIORITY ( type: selectList; label { label: "Priorité"; alignment: right } layout { sequence: 40; region: @form-region; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
+        { returnValue: NORMALE; displayValue: Normale }
+        { returnValue: HAUTE; displayValue: Haute }
+        { returnValue: URGENTE; displayValue: Urgente }
+    ] } source { formRegion: @form-region; column: PRIORITY; dataType: varchar2 } default { staticValue: NORMALE } )
+    pageItem P202_DATES ( type: datePicker; label { label: "Date souhaitée"; alignment: right } layout { sequence: 50; region: @form-region; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @form-region; column: DATDEMANDE; dataType: date } default { plsqlExpression: SYSDATE } )
+    pageItem P202_COMMENTAIRE ( type: textarea; label { label: "Commentaire"; alignment: right } layout { sequence: 60; region: @form-region; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60; height: 3 } validation { maxLength: 1000 } source { formRegion: @form-region; column: COMMENTAIRE; dataType: varchar2 } )
+
+    button submit ( buttonName: SUBMIT; label: Créer Demande; layout { sequence: 10; region: @form-region; slot: regionBody; alignment: right } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: insert } )
+    button cancel ( buttonName: CANCEL; label: Réinitialiser; layout { sequence: 20; region: @form-region; slot: regionBody; alignment: right } appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# } behavior { action: triggerAction } triggerAction native-reset-page ( action: resetPage; execution { sequence: 10 } ) )
+
+    process initialize-form ( name: Initialize form Demande; type: formInitialization; formRegion: @form-region; execution { sequence: 10; point: beforeHeader } )
+    process process-form ( name: Process form Demande; type: formAutoRowProcessing; formRegion: @form-region; execution { sequence: 10 } )
+    process after-create ( name: Post-Create Actions; type: executeCode; source { plsqlCode: ```plsql DECLARE v_id NUMBER; BEGIN SELECT MAX(ID) INTO v_id FROM "TES-TRANSFER" WHERE TRANSFER_NUM = :P202_TRANSFER_NUM; IF v_id IS NOT NULL THEN INSERT INTO "TES-SITE-AUDIT"(SITE_ID, AUDIT_TYPE, ENTITY_TABLE, ENTITY_ID, ACTION, USER_NAME, DETAILS) VALUES (:P202_SITE_SOURCE_ID, 'TRANSFER_REQUESTED', 'TES-TRANSFER', v_id, 'CREATE', USER, 'Demande ' || :P202_TRANSFER_NUM); COMMIT; END IF; EXCEPTION WHEN OTHERS THEN NULL; END; ``` }; execution { sequence: 20 } serverSideCondition { type: requestIsContainedInValue; value: SUBMIT } )
+
+    region historique-demandes (
+        name: Mes Demandes en Cours
         type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-TRANSFER"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 20; slot: body }
         appearance {
             template: @/interactive-report
-            templateOptions: #DEFAULT#
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
-        pagination {
-            type: rowRangesXToY
+        link {
+            linkColumn: customTarget
+            target: { page: 208; items: { P208_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Edit" class="fa fa-edit"></span>
         }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucune demande en cours. }
 
-        column TRANSFER_NUM (
-            type: plainText
-            heading {
-                heading: "Transfert"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: STRING
-            }
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column TRANSFER_NUM ( type: plainText; heading { heading: "Numéro" } layout { sequence: 10 } source { dataType: STRING } )
+        column SITE_DEST_ID ( type: plainText; heading { heading: "Destinataire" } layout { sequence: 20 } source { dataType: NUMBER } )
+        column ETAT ( type: plainText; heading { heading: "État" } layout { sequence: 30 } source { dataType: STRING } )
+        column PRIORITY ( type: plainText; heading { heading: "Priorité" } layout { sequence: 40 } source { dataType: STRING } )
+        column DATDEMANDE ( type: plainText; heading { heading: "Demandé le" } layout { sequence: 50 } source { dataType: DATE } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 20 }
+            sort ( column: DATDEMANDE; sort { sequence: 1; direction: DESC } )
         )
-        column SITE_SOURCE_ID (
-            type: plainText
-            heading {
-                heading: "Source"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column SITE_DEST_ID (
-            type: plainText
-            heading {
-                heading: "Destination"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column ETAT (
-            type: plainText
-            heading {
-                heading: "?tat"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: STRING
-            }
-        )
-    )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
-        source {
-            plsqlCode:
-                ```plsql
-                BEGIN
-                    set_site_ctx_for_user(:APP_USER);
-                END;
-                ```
-        }
-        execution {
-            sequence: 5
-            point: beforeHeader
-        }
     )
 
 )

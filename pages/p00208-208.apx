@@ -1,0 +1,56 @@
+page 208 (
+    name: Transfer Form
+    alias: TRANSFER-FORM
+    title: Modifier un Transfert
+    pageGroup: @hq
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [ #DEFAULT# js-dialog-class-t-Drawer--pullOutEnd ]
+    }
+    dialog { chained: false }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
+
+    region buttons ( name: Buttons; type: staticContent; layout { sequence: 20; slot: dialogFooter } appearance { template: @/buttons-container; templateOptions: #DEFAULT# } )
+
+    region transfer-form (
+        name: Transfert
+        type: form
+        source { location: localDatabase; tableName: "TES-TRANSFER" }
+        layout { sequence: 10; slot: contentBody }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ update ] }
+    )
+
+    pageItem P208_ID ( type: hidden; layout { sequence: 10; region: @transfer-form; slot: regionBody } source { formRegion: @transfer-form; column: ID; dataType: number; queryOnly: true; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P208_TRANSFER_NUM ( type: textField; label { label: "Numéro"; alignment: right } layout { sequence: 20; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @transfer-form; column: TRANSFER_NUM; dataType: varchar2 } )
+    pageItem P208_ETAT ( type: selectList; label { label: "État"; alignment: right } layout { sequence: 30; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } lov { staticValues: [
+        { returnValue: BROUILLON; displayValue: Brouillon }
+        { returnValue: DEMANDE; displayValue: Demandé }
+        { returnValue: EN_PREPARATION; displayValue: En préparation }
+        { returnValue: EN_TRANSIT; displayValue: En transit }
+        { returnValue: RECEPTIONNE; displayValue: Réceptionné (partiel/diff) }
+        { returnValue: CLOTURE; displayValue: Clôturé (conforme) }
+        { returnValue: ANNULE; displayValue: Annulé }
+    ] } source { formRegion: @transfer-form; column: ETAT; dataType: varchar2 } validation { required: true } )
+    pageItem P208_PRIORITY ( type: selectList; label { label: "Priorité"; alignment: right } layout { sequence: 40; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } lov { staticValues: [
+        { returnValue: NORMALE; displayValue: Normale }
+        { returnValue: HAUTE; displayValue: Haute }
+        { returnValue: URGENTE; displayValue: Urgente }
+    ] } source { formRegion: @transfer-form; column: PRIORITY; dataType: varchar2 } )
+    pageItem P208_SITE_SOURCE_ID ( type: popupKeyLOV; label { label: "Site source"; alignment: right } layout { sequence: 50; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } source { formRegion: @transfer-form; column: SITE_SOURCE_ID; dataType: number; lov: { query: SELECT ID, SITE_CODE || ' - ' || SITE_NAME FROM "TES-SITE" WHERE ACTIVE='Y' ORDER BY SITE_TYPE, SITE_NAME } } validation { required: true } )
+    pageItem P208_SITE_DEST_ID ( type: popupKeyLOV; label { label: "Site destination"; alignment: right } layout { sequence: 60; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60 } source { formRegion: @transfer-form; column: SITE_DEST_ID; dataType: number; lov: { query: SELECT ID, SITE_CODE || ' - ' || SITE_NAME FROM "TES-SITE" WHERE ACTIVE='Y' ORDER BY SITE_TYPE, SITE_NAME } } validation { required: true } )
+    pageItem P208_DATES ( type: datePicker; label { label: "Date envoi prévue"; alignment: right } layout { sequence: 70; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @transfer-form; column: DATDEMANDE; dataType: date } )
+    pageItem P208_DATE_ENVOI ( type: datePicker; label { label: "Date envoi effective"; alignment: right } layout { sequence: 80; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @transfer-form; column: DATENVOI_EFFECTIVE; dataType: date } )
+    pageItem P208_DATE_RECEPT ( type: datePicker; label { label: "Date réception effective"; alignment: right } layout { sequence: 90; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @transfer-form; column: DATRECEPT_EFFECTIVE; dataType: date } )
+    pageItem P208_COMMENTAIRE ( type: textarea; label { label: "Commentaire"; alignment: right } layout { sequence: 100; region: @transfer-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 60; height: 3 } validation { maxLength: 1000 } source { formRegion: @transfer-form; column: COMMENTAIRE; dataType: varchar2 } )
+
+    button cancel ( buttonName: CANCEL; label: Annuler; layout { sequence: 10; region: @buttons; slot: close } appearance { buttonTemplate: @/text; templateOptions: #DEFAULT# } behavior { action: triggerAction } triggerAction native-dialog-cancel ( action: cancelDialog; execution { sequence: 10 } ) )
+    button save ( buttonName: SAVE; label: Enregistrer; layout { sequence: 30; region: @buttons; slot: next } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: update } )
+
+    process close-dialog ( name: Close Dialog; type: closeDialog; execution { sequence: 50 } serverSideCondition { type: requestIsContainedInValue; value: SAVE } )
+    process initialize-form ( name: Initialize form Transfert; type: formInitialization; formRegion: @transfer-form; execution { sequence: 10; point: beforeHeader } )
+    process process-form ( name: Process form Transfert; type: formAutoRowProcessing; formRegion: @transfer-form; execution { sequence: 10 } )
+
+)

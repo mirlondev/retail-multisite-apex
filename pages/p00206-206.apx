@@ -1,100 +1,88 @@
 page 206 (
     name: Inventaire
-    title: Inventaire
+    alias: SM-INVENTAIRE
+    title: Mon Inventaire
     pageGroup: @supermarche
-    appearance {
-        pageTemplate: @/standard
-        templateOptions: #DEFAULT#
-    }
-    navigation {
-        cursorFocus: doNotFocusCursor
-    }
-    region data (
-        name: Inventaire
-        type: interactiveReport
-        source {
-            location: localDatabase
-            tableName: "TES-STOCK-SITE"
-        }
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/interactive-report
-            templateOptions: #DEFAULT#
-        }
-        pagination {
-            type: rowRangesXToY
-        }
-        messages {
-            whenNoDataFound: Aucune donn?e disponible.
-        }
+    appearance { pageTemplate: @/standard; templateOptions: #DEFAULT# }
+    navigation { cursorFocus: doNotFocusCursor }
+    security { pageAccessProtection: argumentsMustHaveChecksum; formAutoComplete: false }
 
-        column SITE_ID (
-            type: plainText
-            heading {
-                heading: "Site"
-            }
-            layout {
-                sequence: 10
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column CODART (
-            type: plainText
-            heading {
-                heading: "Article"
-            }
-            layout {
-                sequence: 20
-            }
-            source {
-                dataType: STRING
-            }
-        )
-        column QTEPHYSIQUE (
-            type: plainText
-            heading {
-                heading: "Stock physique"
-            }
-            layout {
-                sequence: 30
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
-        column QTETHEORIQUE (
-            type: plainText
-            heading {
-                heading: "Stock th?orique"
-            }
-            layout {
-                sequence: 40
-            }
-            source {
-                dataType: NUMBER
-            }
-        )
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source { breadcrumb: @breadcrumb }
+        layout { sequence: 5; slot: breadcrumbBar }
+        appearance { template: @/title-bar; templateOptions: [ #DEFAULT# t-BreadcrumbRegion--useBreadcrumbTitle ] }
+        componentAppearance { breadcrumbTemplate: @/breadcrumb; templateOptions: #DEFAULT# }
     )
-    process set-site-context (
-        name: Set Site Context
-        type: executeCode
+
+    region info-inventaire (
+        name: Mode d'emploi
+        type: staticContent
+        layout { sequence: 10; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
         source {
             plsqlCode:
                 ```plsql
                 BEGIN
-                    set_site_ctx_for_user(:APP_USER);
+                    htp.p('<div style="background:#fff8e1;padding:1rem;border-left:4px solid #f57c00;margin:1rem 0;">');
+                    htp.p('<b>📋 Mode Inventaire Physique</b><br>');
+                    htp.p('1. Saisissez la quantité réellement comptée pour chaque article<br>');
+                    htp.p('2. Cliquez <b>Valider Inventaire</b> pour appliquer les écarts et générer l''audit log<br>');
+                    htp.p('3. Les écarts (physique vs théorique) sont automatiquement détectés');
+                    htp.p('</div>');
                 END;
                 ```
         }
-        execution {
-            sequence: 5
-            point: beforeHeader
+    )
+
+    region inventaire-form (
+        name: Saisie Inventaire
+        type: form
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 20; slot: body }
+        appearance { template: @/blank-with-attributes; templateOptions: #DEFAULT# }
+        edit { enabled: true; allowedOperations: [ update ] }
+    )
+
+    pageItem P206_ID ( type: hidden; layout { sequence: 10; region: @inventaire-form; slot: regionBody } source { formRegion: @inventaire-form; column: ID; dataType: number; primaryKey: true } security { sessionStateProtection: checksumRequiredSessionLevel } )
+    pageItem P206_CODART ( type: textField; label { label: "Article"; alignment: right } layout { sequence: 20; region: @inventaire-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } source { formRegion: @inventaire-form; column: CODART; dataType: varchar2; queryOnly: true } )
+    pageItem P206_QTEPHYSIQUE ( type: numberField; label { label: "Qté Physique comptée"; alignment: right } layout { sequence: 30; region: @inventaire-form; slot: regionBody; alignment: left } appearance { template: @/optional-floating; templateOptions: #DEFAULT#; width: 32 } validation { required: true } source { formRegion: @inventaire-form; column: QTEPHYSIQUE; dataType: number } )
+
+    button submit ( buttonName: SUBMIT; label: Valider Inventaire; layout { sequence: 10; region: @inventaire-form; slot: regionBody; alignment: right } appearance { buttonTemplate: @/text; hot: true; templateOptions: #DEFAULT# } behavior { warnOnUnsavedChanges: doNotCheck; databaseAction: update } )
+
+    process initialize-form ( name: Initialize form Inventaire; type: formInitialization; formRegion: @inventaire-form; execution { sequence: 10; point: beforeHeader } )
+    process process-form ( name: Process form Inventaire; type: formAutoRowProcessing; formRegion: @inventaire-form; execution { sequence: 10 } )
+    process inventory-audit ( name: Audit Inventaire; type: executeCode; source { plsqlCode: ```plsql DECLARE v_old NUMBER; v_art VARCHAR2(50); BEGIN SELECT QTEPHYSIQUE, CODART INTO v_old, v_art FROM "TES-STOCK-SITE" WHERE ID = :P206_ID; INSERT INTO "TES-SITE-AUDIT"(SITE_ID, AUDIT_TYPE, ENTITY_TABLE, ENTITY_ID, ACTION, USER_NAME, DETAILS) VALUES (SITE_CTX, 'STOCK_INVENTORY', 'TES-STOCK-SITE', :P206_ID, 'UPDATE', USER, 'Inventaire ' || v_art || ': ancien=' || v_old || ' nouveau=' || :P206_QTEPHYSIQUE || ' écart=' || (:P206_QTEPHYSIQUE - v_old)); COMMIT; END; ``` }; execution { sequence: 20 } serverSideCondition { type: requestIsContainedInValue; value: SUBMIT } )
+
+    region inventaire-list (
+        name: Stock à Compter
+        type: interactiveReport
+        source { location: localDatabase; tableName: "TES-STOCK-SITE" }
+        layout { sequence: 30; slot: body }
+        appearance {
+            template: @/interactive-report
+            templateOptions: [ #DEFAULT# t-IRR-region--hideHeader ]
         }
+        link {
+            linkColumn: customTarget
+            target: { page: 206; items: { P206_ID: \#ID#\ }; action: resetPagination }
+            linkIcon: <span role="img" aria-label="Compter" class="fa fa-calculator"></span>
+        }
+        pagination { type: rowRangesXToY }
+        messages { whenNoDataFound: Aucun article en stock. }
+
+        column ID ( type: hidden; layout { sequence: 0 } source { primaryKey: true; dataType: NUMBER } )
+        column CODART ( type: plainText; heading { heading: "Article" } layout { sequence: 10 } source { dataType: STRING } )
+        column QTEPHYSIQUE ( type: plainText; heading { heading: "Phys."; alignment: end } layout { sequence: 20; columnAlignment: end } source { dataType: NUMBER } )
+        column QTETHEORIQUE ( type: plainText; heading { heading: "Théo."; alignment: end } layout { sequence: 30; columnAlignment: end } source { dataType: NUMBER } )
+        column ECART ( type: plainText; heading { heading: "Écart"; alignment: end } layout { sequence: 40; columnAlignment: end } source { dataType: NUMBER } )
+
+        savedReport primary (
+            visibility: primaryDefault
+            view { rowsPerPage: 50 }
+            sort ( column: CODART; sort { sequence: 1 } )
+        )
     )
 
 )
